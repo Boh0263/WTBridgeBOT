@@ -1,10 +1,17 @@
-const { Client } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const config = require('./src/config');
 
+const fs = require('fs');
+
 async function setupWhatsApp() {
   const client = new Client({
-    session: config.whatsapp.session,
+    authStrategy: new LocalAuth({
+      clientId: 'whatsapp-session'
+    }),
+    puppeteer: {
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    },
   });
 
   client.on('qr', qr => {
@@ -13,8 +20,13 @@ async function setupWhatsApp() {
   });
 
   client.on('ready', () => {
-    console.log('WhatsApp client is ready! Session saved.');
-    process.exit(0);
+    console.log('WhatsApp client is ready! Authentication completed and saved.');
+    setTimeout(() => {
+      client.destroy().then(() => {
+        console.log('Setup completed. You can now run the server.');
+        process.exit(0);
+      });
+    }, 2000); // Wait 2 seconds to ensure auth is saved
   });
 
   client.on('auth_failure', msg => {
@@ -26,10 +38,3 @@ async function setupWhatsApp() {
 }
 
 setupWhatsApp();
-
-const clientType = process.argv[2];
-if (clientType === 'listen' || clientType === 'write') {
-  setupWhatsApp(clientType);
-} else {
-  console.log('Usage: node setup.js listen  # or write');
-}

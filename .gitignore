@@ -1,2 +1,8 @@
 .env
 node_modules
+.wwebjs_auth/
+.wwebjs_cache/
+logs/
+sessions/
+src/bridge/messageMappings.json
+src/bridge/userMappings.json

@@ -1,8 +1,9 @@
 require('dotenv').config();
 
+const path = require('path');
+
 const config = {
   whatsapp: {
-    session: process.env.WHATSAPP_SESSION || './sessions/whatsapp',
     groupId: process.env.WHATSAPP_GROUP_ID,
   },
   telegram: {
@@ -19,11 +20,8 @@ const config = {
 
 function validateConfig() {
   const required = [
-    'WHATSAPP_LISTEN_SESSION',
-    'WHATSAPP_WRITE_SESSION',
     'WHATSAPP_GROUP_ID',
-    'TELEGRAM_LISTEN_BOT_TOKEN',
-    'TELEGRAM_WRITE_BOT_TOKEN',
+    'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_GROUP_ID',
   ];
   for (const key of required) {

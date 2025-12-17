@@ -3,43 +3,31 @@ const { telegramClient } = require('../clients/telegram');
 const { processMessage } = require('../handlers/message');
 const { downloadMedia } = require('../handlers/media');
 const { MessageQueue } = require('./queue');
+const { MessageMedia } = require('whatsapp-web.js');
+const logger = require('../utils/logger');
+const fs = require('fs');
+const path = require('path');
 
 const whatsappQueue = new MessageQueue();
 const telegramQueue = new MessageQueue();
 
-async function initializeBridge() {
-  loadMappings();
+// Mapping of message IDs between platforms
+const messageIdMap = new Map(); // key: 'platform:id', value: { waId, tgId, timestamp }
 
-  await whatsappClient.initialize();
+// Mapping of users between platforms
+const userMap = new Map(); // key: 'platform:userId', value: { waId, tgUsername, name }
 
-  // WhatsApp to Telegram
-  whatsappClient.onMessage(async (msg) => {
-    try {
-      whatsappQueue.enqueue({ msg, platform: 'whatsapp' });
-    } catch (error) {
-      console.error('Error enqueuing WhatsApp message:', error);
-    }
-  });
+const MAPPING_FILE = path.join(__dirname, 'messageMappings.json');
+const USER_FILE = path.join(__dirname, 'userMappings.json');
 
-  // Telegram to WhatsApp
-  telegramClient.onMessage(async (msg) => {
-    try {
-      telegramQueue.enqueue({ msg, platform: 'telegram' });
-    } catch (error) {
-      console.error('Error enqueuing Telegram message:', error);
-    }
-  });
-
-  // Start processing queues
-  setInterval(() => processQueue(whatsappQueue, 'telegram'), 1000); // Process every second
-  setInterval(() => processQueue(telegramQueue, 'whatsapp'), 1000);
-
-  // Save mappings every minute
-  setInterval(saveMappings, 60 * 1000);
-
-  // Cleanup old mappings every hour
-  setInterval(cleanupMappings, 60 * 60 * 1000);
-}
+// Load mappings on start
+function loadMappings() {
+  try {
+    if (fs.existsSync(MAPPING_FILE)) {
+      const data = JSON.parse(fs.readFileSync(MAPPING_FILE, 'utf8'));
+      for (const [key, value] of Object.entries(data)) {
+        messageIdMap.set(key, value);
+      }
     }
     if (fs.existsSync(USER_FILE)) {
       const data = JSON.parse(fs.readFileSync(USER_FILE, 'utf8'));
@@ -48,7 +36,7 @@ async function initializeBridge() {
       }
     }
   } catch (error) {
-    console.error('Error loading mappings:', error);
+    logger.error('Error loading mappings:', error);
   }
 }
 
@@ -67,7 +55,7 @@ function saveMappings() {
     }
     fs.writeFileSync(USER_FILE, JSON.stringify(userData, null, 2));
   } catch (error) {
-    console.error('Error saving mappings:', error);
+    logger.error('Error saving mappings:', error);
   }
 }
 
@@ -85,26 +73,28 @@ function cleanupMappings() {
 async function initializeBridge() {
   loadMappings();
 
-  await waListen.initialize();
-  await waWrite.initialize();
+  await whatsappClient.initialize();
+  await telegramClient.initialize();
 
-  // WhatsApp to Telegram
-  waListen.onMessage(async (msg) => {
-    try {
-      whatsappQueue.enqueue({ msg, platform: 'whatsapp' });
-    } catch (error) {
-      console.error('Error enqueuing WhatsApp message:', error);
-    }
-  });
+    // WhatsApp to Telegram
+    whatsappClient.onMessage(async (msg) => {
+      try {
+        logger.info('Received WhatsApp message:', msg.body);
+        whatsappQueue.enqueue({ msg, platform: 'whatsapp' });
+      } catch (error) {
+        logger.error('Error enqueuing WhatsApp message:', error);
+      }
+    });
 
-  // Telegram to WhatsApp
-  tgListen.onMessage(async (msg) => {
-    try {
-      telegramQueue.enqueue({ msg, platform: 'telegram' });
-    } catch (error) {
-      console.error('Error enqueuing Telegram message:', error);
-    }
-  });
+    // Telegram to WhatsApp
+    telegramClient.onMessage(async (msg) => {
+      try {
+        logger.info('Received Telegram message:', msg.text || msg.caption);
+        telegramQueue.enqueue({ msg, platform: 'telegram' });
+      } catch (error) {
+        logger.error('Error enqueuing Telegram message:', error);
+      }
+    });
 
   // Start processing queues
   setInterval(() => processQueue(whatsappQueue, 'telegram'), 1000); // Process every second
@@ -157,23 +147,23 @@ async function processQueue(queue, targetPlatform) {
           mapping.waId = forwardedId.id;
         }
       }
-    } catch (error) {
-      console.error(`Error processing message from ${item.platform}:`, error);
-    }
+      } catch (error) {
+        logger.error(`Error processing message from ${item.platform}:`, error);
+      }
   }
 }
 
 async function forwardToTelegram(msg, replyId) {
-  const { text, media } = msg;
+  const { text, media, originalMsg } = msg;
   const options = replyId ? { reply_to_message_id: replyId } : {};
   if (media) {
-    const mediaData = await downloadForTelegram(media);
-    if (media.type === 'image') {
-      return await telegramClient.sendPhoto(mediaData, text, options);
-    } else if (media.type === 'document') {
-      return await telegramClient.sendDocument(mediaData, text, options);
-    } else if (media.type === 'video') {
-      return await telegramClient.sendVideo(mediaData, text, options);
+    const mediaData = await downloadMedia(originalMsg, 'telegram');
+    if (mediaData.type === 'image') {
+      return await telegramClient.sendPhoto(mediaData.data, text, options);
+    } else if (mediaData.type === 'document') {
+      return await telegramClient.sendDocument(mediaData.data, text, options);
+    } else if (mediaData.type === 'video') {
+      return await telegramClient.sendVideo(mediaData.data, text, options);
     }
   } else {
     return await telegramClient.sendMessage(text, options);
@@ -181,46 +171,29 @@ async function forwardToTelegram(msg, replyId) {
 }
 
 async function forwardToWhatsApp(msg, replyId) {
-  const { text, media } = msg;
+  const { text, media, originalMsg } = msg;
   const options = replyId ? { quotedMessageId: replyId } : {};
   if (media) {
-    const mediaData = await downloadForWhatsApp(media);
+    let mediaData;
+    if (originalMsg.platform === 'whatsapp') {
+      mediaData = await downloadMedia(originalMsg, 'whatsapp');
+    } else {
+      const downloaded = await downloadMedia(originalMsg, 'telegram');
+      if (downloaded.type === 'image') {
+        mediaData = MessageMedia.fromBuffer(downloaded.data, 'image/jpeg');
+      } else if (downloaded.type === 'document') {
+        mediaData = MessageMedia.fromBuffer(downloaded.data, 'application/octet-stream');
+      } else if (downloaded.type === 'video') {
+        mediaData = MessageMedia.fromBuffer(downloaded.data, 'video/mp4');
+      }
+    }
     return await whatsappClient.sendMessage(text, mediaData, options);
   } else {
     return await whatsappClient.sendMessage(text, null, options);
   }
 }
-  } else {
-    return await tgWrite.sendMessage(fullText, options);
-  }
-}
 
-async function forwardToWhatsApp(msg, replyId) {
-  const { text, media, sender, timestamp } = msg;
-  const senderInfo = sender ? `[${sender} - ${new Date(timestamp * 1000).toISOString()}] ` : '';
-  const fullText = senderInfo + text;
-  const options = replyId ? { quotedMessageId: replyId } : {};
-  if (media) {
-    const mediaData = await downloadForWhatsApp(media);
-    return await waWrite.sendMessage(fullText, mediaData, options);
-  } else {
-    return await waWrite.sendMessage(fullText, null, options);
-  }
-}
 
-async function downloadForTelegram(media) {
-  if (media.type === 'image' || media.type === 'document' || media.type === 'video') {
-    return await downloadMedia({ file_id: media.fileId }, 'telegram');
-  }
-  return null;
-}
-
-async function downloadForWhatsApp(media) {
-  if (media.type === 'whatsapp') {
-    return await whatsappClient.downloadMedia(media.msg);
-  }
-  return null;
-}
 
 function replaceMentions(text, mentions, targetPlatform) {
   let newText = text;

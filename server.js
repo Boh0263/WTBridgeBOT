@@ -14,12 +14,13 @@ if (!fs.existsSync(sessionsDir)) {
   fs.mkdirSync(sessionsDir, { recursive: true });
 }
 
-// Check if WhatsApp session exists
+// Check if WhatsApp auth data exists
 const config = require('./src/config');
-const whatsappSession = path.resolve(config.whatsapp.session);
+const whatsappAuthDir = './.wwebjs_auth';
+console.log('Checking WhatsApp auth at:', whatsappAuthDir);
 
-if (!fs.existsSync(whatsappSession)) {
-  console.error('WhatsApp session not found. Run "npm run setup" to authenticate first.');
+if (!fs.existsSync(whatsappAuthDir)) {
+  console.error('WhatsApp authentication not found. Run "npm run setup" to authenticate first.');
   process.exit(1);
 }
 

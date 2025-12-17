@@ -19,7 +19,10 @@ Follow these simple steps to get your WhatsApp-Telegram bridge running. No codin
 - Open `.env` in a text editor.
 - Fill in:
   - `WHATSAPP_GROUP_ID`: Your WhatsApp group ID (ask admin or find online).
-  - `TELEGRAM_BOT_TOKEN`: Get from @BotFather on Telegram (type `/newbot`, follow steps).
+  - `TELEGRAM_BOT_TOKEN`: Get from @BotFather on Telegram:
+    - Send `/newbot` to @BotFather and follow the prompts to create your bot.
+    - After creating, go to Bot Settings > Group Privacy > Turn off (this allows the bot to read all messages in groups, not just commands and mentions).
+    - Copy the bot token provided.
   - `TELEGRAM_GROUP_ID`: Your Telegram group ID (add bot to group, check bot logs or use @userinfobot).
 - Leave other lines as is (they have defaults).
 

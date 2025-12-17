@@ -1,11 +1,16 @@
-const { Client } = require('whatsapp-web.js');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const config = require('../config');
 
 class WhatsAppClient {
   constructor() {
     this.client = new Client({
-      session: config.whatsapp.session,
+      authStrategy: new LocalAuth({
+        clientId: 'whatsapp-session'
+      }),
+      puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      },
     });
 
     this.client.on('qr', qr => {
@@ -20,7 +25,7 @@ class WhatsAppClient {
     this.client.on('message', async msg => {
       if (msg.from !== config.whatsapp.groupId) return; // Only from specified group
       if (msg.fromMe) return; // Ignore own messages to prevent loops
-      this.onMessage(msg);
+      if (this.messageCallback) this.messageCallback(msg);
     });
   }
 
@@ -34,12 +39,13 @@ class WhatsAppClient {
     if (options.quotedMessageId) {
       msgOptions.quotedMessageId = options.quotedMessageId;
     }
+    let sent;
     if (media) {
-      await chat.sendMessage(media, { caption: text, ...msgOptions });
+      sent = await chat.sendMessage(media, { caption: text, ...msgOptions });
     } else {
-      await chat.sendMessage(text, msgOptions);
+      sent = await chat.sendMessage(text, msgOptions);
     }
-    return { id: 'wa_' + Date.now() }; // Return a pseudo ID for mapping
+    return { id: sent.id };
   }
 
   onMessage(callback) {

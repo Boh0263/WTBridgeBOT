@@ -13,7 +13,8 @@ async function processMessage(msg, platform) {
       media = { type: 'whatsapp', msg };
     }
     if (msg.hasQuotedMsg) {
-      replyTo = msg.quotedMsg.id;
+      const quotedMsg = await msg.getQuotedMessage();
+      replyTo = quotedMsg.id;
     }
     timestamp = msg.timestamp;
     sender = msg.author || msg.from;
@@ -54,7 +55,7 @@ async function processMessage(msg, platform) {
   // Skip if no content
   if (!text && !media) return null;
 
-  return { text, media, replyTo, timestamp, sender, mentions, userInfo, from: platform, originalId: msg.id || msg.message_id };
+  return { text, media, replyTo, timestamp, sender, mentions, userInfo, from: platform, originalId: msg.id || msg.message_id, originalMsg: msg };
 }
 
 module.exports = { processMessage };
