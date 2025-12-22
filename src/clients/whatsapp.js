@@ -23,9 +23,12 @@ class WhatsAppClient {
     });
 
     this.client.on('message', async msg => {
-      if (msg.from !== config.whatsapp.groupId) return; // Only from specified group
       if (msg.fromMe) return; // Ignore own messages to prevent loops
-      if (this.messageCallback) this.messageCallback(msg);
+      if (msg.from === config.whatsapp.groupId) {
+        if (this.messageCallback) this.messageCallback(msg);
+      } else {
+        if (this.privateCallback) this.privateCallback(msg);
+      }
     });
   }
 
@@ -33,8 +36,8 @@ class WhatsAppClient {
     await this.client.initialize();
   }
 
-  async sendMessage(text, media = null, options = {}) {
-    const chat = await this.client.getChatById(config.whatsapp.groupId);
+  async sendMessage(chatId, text, media = null, options = {}) {
+    const chat = await this.client.getChatById(chatId);
     const msgOptions = {};
     if (options.quotedMessageId) {
       msgOptions.quotedMessageId = options.quotedMessageId;
@@ -48,9 +51,13 @@ class WhatsAppClient {
     return { id: sent.id };
   }
 
-  onMessage(callback) {
-    this.messageCallback = callback;
-  }
+   onMessage(callback) {
+     this.messageCallback = callback;
+   }
+
+   onPrivateMessage(callback) {
+     this.privateCallback = callback;
+   }
 
   async downloadMedia(msg) {
     if (!msg.hasMedia) return null;

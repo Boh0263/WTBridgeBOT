@@ -7,6 +7,8 @@ async function processMessage(msg, platform) {
   let mentions = [];
   let userInfo = null;
 
+  const { userMap } = require('../bridge/index');
+
   if (platform === 'whatsapp') {
     text = msg.body || '';
     if (msg.hasMedia) {
@@ -16,24 +18,25 @@ async function processMessage(msg, platform) {
       const quotedMsg = await msg.getQuotedMessage();
       replyTo = quotedMsg.id;
     }
-    timestamp = msg.timestamp;
-    sender = msg.author || msg.from;
-    userInfo = { id: sender, name: msg.pushname || 'Unknown', platform: 'whatsapp' };
-    // Extract mentions: WhatsApp mentions are @number in text
-    const mentionRegex = /@(\d+)/g;
-    let match;
-    while ((match = mentionRegex.exec(text)) !== null) {
-      mentions.push({ id: match[1], platform: 'whatsapp' });
+     timestamp = msg.timestamp;
+     sender = msg.author || msg.from;
+     // Use pushname directly, fallback to Unknown
+     const name = msg.pushname || 'Unknown';
+    userInfo = { id: sender, name, platform: 'whatsapp' };
+    // Lookup shortname from userMap
+    const { waIdToTgId, userMap } = require('../bridge/index');
+    const tgId = waIdToTgId.get(sender);
+    if (tgId) {
+      const user = userMap.get(tgId);
+      if (user) {
+        userInfo.shortname = user.shortname;
+      }
     }
   } else if (platform === 'telegram') {
     text = msg.text || msg.caption || '';
-    if (msg.photo && msg.photo.length > 0) {
-      const fileId = msg.photo[msg.photo.length - 1].file_id;
-      media = { type: 'image', fileId };
-    } else if (msg.document) {
-      media = { type: 'document', fileId: msg.document.file_id, fileName: msg.document.file_name };
-    } else if (msg.video) {
-      media = { type: 'video', fileId: msg.video.file_id };
+    // Handle media for telegram if needed
+    if (msg.photo || msg.document || msg.video || msg.audio || msg.voice) {
+      media = { type: 'telegram', msg };
     }
     if (msg.reply_to_message) {
       replyTo = msg.reply_to_message.message_id;
@@ -41,6 +44,12 @@ async function processMessage(msg, platform) {
     timestamp = msg.date;
     sender = msg.from.username || msg.from.first_name;
     userInfo = { id: msg.from.id, username: msg.from.username, name: msg.from.first_name + ' ' + (msg.from.last_name || ''), platform: 'telegram' };
+    // Lookup shortname from userMap
+    const { userMap } = require('../bridge/index');
+    const user = userMap.get(msg.from.id);
+    if (user) {
+      userInfo.shortname = user.shortname;
+    }
     // Extract mentions from entities
     if (msg.entities) {
       msg.entities.forEach(entity => {

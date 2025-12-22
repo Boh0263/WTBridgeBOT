@@ -5,6 +5,7 @@ const { downloadMedia } = require('../handlers/media');
 const { MessageQueue } = require('./queue');
 const { MessageMedia } = require('whatsapp-web.js');
 const logger = require('../utils/logger');
+const config = require('../config');
 const fs = require('fs');
 const path = require('path');
 
@@ -14,11 +15,90 @@ const telegramQueue = new MessageQueue();
 // Mapping of message IDs between platforms
 const messageIdMap = new Map(); // key: 'platform:id', value: { waId, tgId, timestamp }
 
-// Mapping of users between platforms
-const userMap = new Map(); // key: 'platform:userId', value: { waId, tgUsername, name }
+// Mapping of users: key tgId, value { phoneNumber, waId?, shortname, name, groupChatId? }
+const userMap = new Map();
+
+// Reverse mapping: waId -> tgId
+const waIdToTgId = new Map();
+
+// Pending WhatsApp link confirmations
+const waUserStates = new Map(); // key: waId, value: { shortname, tgData }
+
+async function handleWAPrivate(msg) {
+  const text = msg.body || '';
+  const waId = msg.from; // Full ID like 1234567890@c.us
+  const waPhone = waId.split('@')[0];
+
+  console.log('WA private text:', text, 'from ID:', waId, 'phone:', waPhone);
+
+  // Check for confirmation
+  if (text.toLowerCase() === 'yes') {
+    const state = waUserStates.get(waId);
+    if (state && (Date.now() - state.timestamp < 30000)) {
+      const { shortname, tgData, tgId, participantId } = state;
+
+      console.log('Confirming link for WA participant ID:', participantId, 'to TG ID:', tgId);
+
+      try {
+        await msg.reply('Confirmation received. Linking your accounts...');
+      } catch (error) {
+        logger.error('Failed to send confirmation received reply:', error);
+      }
+
+      // Link WA to TG
+      const user = userMap.get(tgId);
+      user.waId = participantId;
+      user.groupChatId = state.groupChatId;
+
+      // Add reverse mapping
+      waIdToTgId.set(participantId, tgId);
+
+      waUserStates.delete(waId);
+
+      console.log('Link successful');
+      try {
+        await msg.reply(`Linked successfully! Your shortname is ${shortname}.`);
+      } catch (error) {
+        logger.error('Failed to send success reply:', error);
+      }
+    } else if (state) {
+      // Expired
+      waUserStates.delete(waId);
+      try {
+        await msg.reply('Confirmation expired. Please try !iam again.');
+      } catch (error) {
+        logger.error('Failed to send expired reply:', error);
+      }
+    } else {
+      try {
+        await msg.reply('No pending confirmation found.');
+      } catch (error) {
+        logger.error('Failed to send no pending reply:', error);
+      }
+    }
+  } else {
+    try {
+      await msg.reply('Unknown command. Reply "yes" to confirm linking.');
+    } catch (error) {
+      logger.error('Failed to send unknown reply:', error);
+    }
+  }
+}
 
 const MAPPING_FILE = path.join(__dirname, 'messageMappings.json');
 const USER_FILE = path.join(__dirname, 'userMappings.json');
+const WA_FILE = path.join(__dirname, 'waIdMappings.json');
+
+// Function to escape HTML entities
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
 
 // Load mappings on start
 function loadMappings() {
@@ -33,6 +113,12 @@ function loadMappings() {
       const data = JSON.parse(fs.readFileSync(USER_FILE, 'utf8'));
       for (const [key, value] of Object.entries(data)) {
         userMap.set(key, value);
+      }
+    }
+    if (fs.existsSync(WA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(WA_FILE, 'utf8'));
+      for (const [key, value] of Object.entries(data)) {
+        waIdToTgId.set(key, value);
       }
     }
   } catch (error) {
@@ -54,6 +140,12 @@ function saveMappings() {
       userData[key] = value;
     }
     fs.writeFileSync(USER_FILE, JSON.stringify(userData, null, 2));
+
+    const waIdData = {};
+    for (const [key, value] of waIdToTgId) {
+      waIdData[key] = value;
+    }
+    fs.writeFileSync(WA_FILE, JSON.stringify(waIdData, null, 2));
   } catch (error) {
     logger.error('Error saving mappings:', error);
   }
@@ -79,12 +171,25 @@ async function initializeBridge() {
     // WhatsApp to Telegram
     whatsappClient.onMessage(async (msg) => {
       try {
+        console.log('WA message from:', msg.from, 'body:', msg.body);
+
+        // Check for !iam command
+        const text = msg.body || '';
+        if (text.startsWith('!iam ')) {
+          console.log('Handling !iam command');
+          await handleIAMCommand(msg);
+          return;
+        }
+
         logger.info('Received WhatsApp message:', msg.body);
         whatsappQueue.enqueue({ msg, platform: 'whatsapp' });
       } catch (error) {
         logger.error('Error enqueuing WhatsApp message:', error);
       }
     });
+
+    // WhatsApp private messages
+    whatsappClient.onPrivateMessage(handleWAPrivate);
 
     // Telegram to WhatsApp
     telegramClient.onMessage(async (msg) => {
@@ -154,24 +259,46 @@ async function processQueue(queue, targetPlatform) {
 }
 
 async function forwardToTelegram(msg, replyId) {
-  const { text, media, originalMsg } = msg;
-  const options = replyId ? { reply_to_message_id: replyId } : {};
+  const { text, media, originalMsg, userInfo } = msg;
+
+  // Lookup sender info from userMap
+  const senderKey = `${userInfo.platform}:${userInfo.id}`;
+  const mappedUser = userMap.get(senderKey);
+  const senderName = mappedUser?.shortname || userInfo.name || 'Unknown';
+
+  // Build formatted text
+  const content = escapeHtml(text || '');
+  const timestamp = escapeHtml(new Date().toLocaleString());
+  const embedText = `<b>${escapeHtml(senderName)}:</b>\n${content}\n<i>${timestamp}</i>`;
+
+  const options = replyId ? { reply_to_message_id: replyId, parse_mode: 'HTML' } : { parse_mode: 'HTML' };
+
   if (media) {
     const mediaData = await downloadMedia(originalMsg, 'telegram');
     if (mediaData.type === 'image') {
-      return await telegramClient.sendPhoto(mediaData.data, text, options);
+      return await telegramClient.sendPhoto(mediaData.data, embedText, options);
     } else if (mediaData.type === 'document') {
-      return await telegramClient.sendDocument(mediaData.data, text, options);
+      return await telegramClient.sendDocument(mediaData.data, embedText, options);
     } else if (mediaData.type === 'video') {
-      return await telegramClient.sendVideo(mediaData.data, text, options);
+      return await telegramClient.sendVideo(mediaData.data, embedText, options);
     }
   } else {
-    return await telegramClient.sendMessage(text, options);
+    return await telegramClient.sendMessage(embedText, options);
   }
 }
 
 async function forwardToWhatsApp(msg, replyId) {
-  const { text, media, originalMsg } = msg;
+  const { text, media, originalMsg, userInfo } = msg;
+
+  // Lookup sender info from userMap
+  const senderKey = `${userInfo.platform}:${userInfo.id}`;
+  const mappedUser = userMap.get(senderKey);
+  const senderName = mappedUser?.shortname || userInfo.name || 'Unknown';
+
+  // Build formatted text
+  const content = text || '';
+  const formattedText = `*${senderName}:*\n${content}\n_${new Date().toLocaleString()}_`;
+
   const options = replyId ? { quotedMessageId: replyId } : {};
   if (media) {
     let mediaData;
@@ -187,9 +314,9 @@ async function forwardToWhatsApp(msg, replyId) {
         mediaData = MessageMedia.fromBuffer(downloaded.data, 'video/mp4');
       }
     }
-    return await whatsappClient.sendMessage(text, mediaData, options);
+    return await whatsappClient.sendMessage(config.whatsapp.groupId, formattedText, mediaData, options);
   } else {
-    return await whatsappClient.sendMessage(text, null, options);
+    return await whatsappClient.sendMessage(config.whatsapp.groupId, formattedText, null, options);
   }
 }
 
@@ -209,4 +336,60 @@ function replaceMentions(text, mentions, targetPlatform) {
   return newText;
 }
 
-module.exports = { initializeBridge };
+async function handleIAMCommand(msg) {
+  const text = msg.body || '';
+  const waId = msg.author || msg.from; // Group participant ID
+  const parts = text.trim().split(/\s+/);
+  if (parts.length !== 2) {
+    try {
+      await whatsappClient.sendMessage(waId + '@c.us', 'Usage: !iam <shortname>');
+    } catch (error) {
+      logger.error('Failed to send usage message:', error);
+    }
+    return;
+  }
+  const shortname = parts[1].trim().toLowerCase();
+
+  // Validate shortname
+  if (shortname.length > 9 || shortname.length < 1 || !/^[a-zA-Z0-9]+$/.test(shortname)) {
+    try {
+      await whatsappClient.sendMessage(waId + '@c.us', 'Invalid shortname. Use 1-9 alphanumeric characters.');
+    } catch (error) {
+      logger.error('Failed to send invalid message:', error);
+    }
+    return;
+  }
+
+  console.log('IAM command from WA participant ID:', waId, 'shortname:', shortname);
+
+  // Find matching TG user by shortname
+  let tgId = null;
+  let tgData = null;
+  for (const [key, value] of userMap) {
+    if (value.shortname === shortname) {
+      tgId = key;
+      tgData = value;
+      break;
+    }
+  }
+
+  if (!tgId) {
+    try {
+      await whatsappClient.sendMessage(waId + '@c.us', 'No matching Telegram user found with that shortname.');
+    } catch (error) {
+      logger.error('Failed to send no match message:', error);
+    }
+    return;
+  }
+
+  // Set state for confirmation
+  waUserStates.set(tgData.phoneNumber + '@c.us', { shortname, tgData, tgId, groupChatId: msg.from, participantId: waId, timestamp: Date.now() });
+
+  try {
+    await whatsappClient.sendMessage(tgData.phoneNumber + '@c.us', `Is this you (${tgData.name})? Reply 'yes' within 30 seconds to confirm linking.`);
+  } catch (error) {
+    logger.error('Failed to send confirmation message:', error);
+  }
+}
+
+module.exports = { initializeBridge, userMap, waIdToTgId, saveMappings };
