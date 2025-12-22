@@ -50,5 +50,5 @@ USER appuser
 # Expose port
 EXPOSE 3000
 
-# Debug: Check files in running container
-CMD ["sh", "-c", "ls -la src/bridge/ && echo 'Files exist, trying node...' && node server.js"]
+# Start directly with Node
+CMD ["node", "server.js"]
