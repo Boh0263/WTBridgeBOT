@@ -23,6 +23,9 @@ COPY ecosystem.config.js ./
 # Copy source code explicitly
 COPY src/ src/
 
+# Debug: List copied files
+RUN ls -la /app/src/ || echo "No src/" && ls -la /app/src/bridge/ || echo "No files in /app/src/bridge/"
+
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
