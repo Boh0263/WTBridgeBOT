@@ -53,5 +53,5 @@ USER appuser
 # Expose port
 EXPOSE 3000
 
-# Debug: List all files in /app
-CMD ["sh", "-c", "find /app -name '*.js' | head -20 && echo '---' && ls -la /app/ && echo '---' && ls -la /app/src/bridge/ && node server.js"]
+# Start directly with Node
+CMD ["node", "server.js"]
