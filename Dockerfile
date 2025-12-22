@@ -17,6 +17,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Install dependencies
+RUN npm ci --only=production
+
 # Copy main files
 COPY server.js ./
 COPY ecosystem.config.js ./
