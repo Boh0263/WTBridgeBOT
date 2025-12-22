@@ -29,17 +29,6 @@ if (!fs.existsSync(whatsappAuthDir)) {
 LocalizationManager.getInstance().load(config.language);
 logger.info(`Language loaded: ${config.language}`);
 
-console.log('Starting server...');
-console.log('CWD:', process.cwd());
-try {
-  console.log('Files in src:', require('fs').readdirSync('./src'));
-  const bridge = require('./src/bridge');
-  console.log('Bridge loaded:', Object.keys(bridge));
-} catch (e) {
-  console.error('Failed to load bridge:', e);
-  process.exit(1);
-}
-
 async function startServer() {
   try {
     await initializeBridge();
