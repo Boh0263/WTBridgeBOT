@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Scollegamento riuscito.",
+  "unlink.no_pending": "Nessuna conferma di scollegamento in sospeso o scaduta.",
+  "unlink.not_linked": "Non sei collegato.",
+  "unlink.confirm": "Sei sicuro di voler scollegare? Digita esattamente 'yes' per confermare entro 30 secondi.",
+  "link.usage": "Uso: /link <telefono> <nomebreve>\\nEsempio: /link 391234567890 mionome",
+  "unknown_command": "Comando sconosciuto. Usa /link <telefono> <nomebreve> per collegare o /unlink per scollegare.",
+  "link.invalid_phone": "Numero di telefono non valido. Usa solo cifre, 10-15 caratteri.",
+  "link.invalid_shortname": "Nome breve non valido. Usa 1-9 caratteri alfanumerici.",
+  "link.phone_taken": "Numero di telefono già collegato. Usa /unlink per scollegare prima.",
+  "link.shortname_taken": "Nome breve già in uso. Scegliene uno diverso o usa /unlink per scollegare.",
+  "link.success": "Collegato! Il tuo nome breve: {{shortname}}",
+  "link.invalid_shortname_retry": "Nome breve non valido. Usa 1-9 caratteri alfanumerici, o rispondi \"salta\".",
+  "iam.confirm_received": "Conferma ricevuta. Collegamento degli account...",
+  "iam.success": "Collegamento riuscito! Il tuo nome breve è {{shortname}}.",
+  "iam.expired": "Conferma scaduta. Riprova !iam.",
+  "iam.no_pending": "Nessuna conferma in sospeso trovata.",
+  "iam.unknown": "Comando sconosciuto. Digita esattamente 'yes' per confermare il collegamento.",
+  "iam.usage": "Uso: !iam <nomebreve>",
+  "iam.invalid_shortname": "Nome breve non valido. Usa 1-9 caratteri alfanumerici.",
+  "iam.no_match": "Nessun utente Telegram corrispondente trovato con quel nome breve.",
+  "iam.confirm": "Sei tu ({{name}})? Digita esattamente 'yes' entro 30 secondi per confermare il collegamento."
+}

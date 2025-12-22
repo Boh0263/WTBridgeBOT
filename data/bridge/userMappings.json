@@ -1,0 +1,20 @@
+{
+  "2125733710": {
+    "phoneNumber": "393516239131",
+    "waId": "259334839742654@lid",
+    "name": "Abstract",
+    "shortname": "fabio",
+    "groupChatId": "120363423310130542@g.us"
+  },
+  "whatsapp:259334839742654@lid": {
+    "id": "259334839742654@lid",
+    "name": "Unknown",
+    "platform": "whatsapp",
+    "shortname": "fabio"
+  },
+  "telegram:2125733710": {
+    "id": 2125733710,
+    "name": "Abstract ",
+    "platform": "telegram"
+  }
+}

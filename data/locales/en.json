@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Unlinked successfully.",
+  "unlink.no_pending": "No pending unlink confirmation or expired.",
+  "unlink.not_linked": "You are not linked.",
+  "unlink.confirm": "Are you sure you want to unlink? Type exactly 'yes' to confirm within 30 seconds.",
+  "link.usage": "Usage: /link <phone> <shortname>\\nExample: /link 1234567890 myname",
+  "unknown_command": "Unknown command. Use /link <phone> <shortname> to link or /unlink to unlink.",
+  "link.invalid_phone": "Invalid phone number. Use digits only, 10-15 characters.",
+  "link.invalid_shortname": "Invalid shortname. Use 1-9 alphanumeric characters.",
+  "link.phone_taken": "Phone number already linked. Use /unlink to unlink first.",
+  "link.shortname_taken": "Shortname already in use. Choose a different one or use /unlink to unlink.",
+  "link.success": "Linked! Your shortname: {{shortname}}",
+  "link.invalid_shortname_retry": "Invalid shortname. Use 1-9 alphanumeric chars, or reply \"skip\".",
+  "iam.confirm_received": "Confirmation received. Linking your accounts...",
+  "iam.success": "Linked successfully! Your shortname is {{shortname}}.",
+  "iam.expired": "Confirmation expired. Please try !iam again.",
+  "iam.no_pending": "No pending confirmation found.",
+  "iam.unknown": "Unknown command. Type exactly 'yes' to confirm linking.",
+  "iam.usage": "Usage: !iam <shortname>",
+  "iam.invalid_shortname": "Invalid shortname. Use 1-9 alphanumeric characters.",
+  "iam.no_match": "No matching Telegram user found with that shortname.",
+  "iam.confirm": "Is this you ({{name}})? Type exactly 'yes' within 30 seconds to confirm linking."
+}

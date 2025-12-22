@@ -9,19 +9,20 @@ async function processMessage(msg, platform) {
 
   const { userMap } = require('../bridge/index');
 
-  if (platform === 'whatsapp') {
-    text = msg.body || '';
-    if (msg.hasMedia) {
-      media = { type: 'whatsapp', msg };
-    }
-    if (msg.hasQuotedMsg) {
-      const quotedMsg = await msg.getQuotedMessage();
-      replyTo = quotedMsg.id;
-    }
-     timestamp = msg.timestamp;
-     sender = msg.author || msg.from;
-     // Use pushname directly, fallback to Unknown
-     const name = msg.pushname || 'Unknown';
+   if (platform === 'whatsapp') {
+     text = msg.body || '';
+     if (msg.hasMedia) {
+       media = { type: 'whatsapp', msg };
+     }
+     if (msg.hasQuotedMsg) {
+       const quotedMsg = await msg.getQuotedMessage();
+       replyTo = quotedMsg.id;
+     }
+      timestamp = msg.timestamp;
+      sender = msg.author || msg.from; // Full ID like 1234567890@c.us
+      const waPhone = sender.split('@')[0];
+      // Use pushname directly, fallback to phone number like unsaved contacts in WhatsApp
+      const name = msg.pushname || waPhone;
     userInfo = { id: sender, name, platform: 'whatsapp' };
     // Lookup shortname from userMap
     const { waIdToTgId, userMap } = require('../bridge/index');

@@ -261,7 +261,7 @@ async function processQueue(queue, targetPlatform) {
 }
 
 async function forwardToTelegram(msg, replyId) {
-  const { text, media, originalMsg, userInfo } = msg;
+  const { text, media, originalMsg, userInfo, from: platform } = msg;
 
   // Lookup sender info from userMap
   const senderKey = `${userInfo.platform}:${userInfo.id}`;
@@ -276,19 +276,32 @@ async function forwardToTelegram(msg, replyId) {
   const options = replyId ? { reply_to_message_id: replyId, parse_mode: 'HTML' } : { parse_mode: 'HTML' };
 
   if (media) {
-    if (originalMsg.platform === 'whatsapp') {
+    if (platform === 'whatsapp') {
       const mediaData = await downloadMedia(originalMsg, 'whatsapp');
-      const mimeType = originalMsg.mimetype || 'application/octet-stream';
-      const filename = originalMsg.filename || 'file';
+      if (!mediaData) {
+        // Handle failed media download
+        logger.error('Failed to download media from WhatsApp');
+        return await telegramClient.sendMessage(embedText, options);
+      }
+      const buffer = Buffer.from(mediaData.data, 'base64');
+      const mimeType = mediaData.mimetype || 'application/octet-stream';
+      const filename = mediaData.filename || 'file';
       if (mimeType.startsWith('image/')) {
-        return await telegramClient.sendPhoto(mediaData, embedText, options);
+        return await telegramClient.sendPhoto(buffer, embedText, options);
       } else if (mimeType.startsWith('video/')) {
-        return await telegramClient.sendVideo(mediaData, embedText, options);
+        return await telegramClient.sendVideo(buffer, embedText, options);
+      } else if (mimeType.startsWith('audio/')) {
+        return await telegramClient.sendAudio(buffer, embedText, options);
       } else {
-        return await telegramClient.sendDocument(mediaData, embedText, { ...options, filename });
+        return await telegramClient.sendDocument(buffer, embedText, { ...options, filename });
       }
     } else {
       const mediaData = await downloadMedia(originalMsg, 'telegram');
+      if (!mediaData) {
+        // Handle failed media download
+        logger.error('Failed to download media from Telegram');
+        return await telegramClient.sendMessage(embedText, options);
+      }
       if (mediaData.type === 'image') {
         return await telegramClient.sendPhoto(mediaData.data, embedText, options);
       } else if (mediaData.type === 'document') {
@@ -305,7 +318,7 @@ async function forwardToTelegram(msg, replyId) {
 }
 
 async function forwardToWhatsApp(msg, replyId, mentionedIds = []) {
-  const { text, media, originalMsg, userInfo } = msg;
+  const { text, media, originalMsg, userInfo, from: platform } = msg;
 
   // Lookup sender info from userMap
   const senderKey = `${userInfo.platform}:${userInfo.id}`;
@@ -322,10 +335,20 @@ async function forwardToWhatsApp(msg, replyId, mentionedIds = []) {
   }
   if (media) {
     let mediaData;
-    if (originalMsg.platform === 'whatsapp') {
+    if (platform === 'whatsapp') {
       mediaData = await downloadMedia(originalMsg, 'whatsapp');
+      if (!mediaData) {
+        // Handle failed media download
+        logger.error('Failed to download media from WhatsApp');
+        return await whatsappClient.sendMessage(config.whatsapp.groupId, formattedText, null, options);
+      }
     } else {
       const downloaded = await downloadMedia(originalMsg, 'telegram');
+      if (!downloaded) {
+        // Handle failed media download
+        logger.error('Failed to download media from Telegram');
+        return await whatsappClient.sendMessage(config.whatsapp.groupId, formattedText, null, options);
+      }
       if (downloaded.type === 'image') {
         mediaData = new MessageMedia(downloaded.mimeType || 'image/jpeg', downloaded.data.toString('base64'));
       } else if (downloaded.type === 'document') {

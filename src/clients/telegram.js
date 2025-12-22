@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('../config');
 const logger = require('../utils/logger');
+const LocalizationManager = require('../utils/localization');
 
 class TelegramClient {
   constructor() {
@@ -46,6 +47,11 @@ class TelegramClient {
     return { id: sent.message_id };
   }
 
+  async sendAudio(audio, caption = '', options = {}) {
+    const sent = await this.bot.sendAudio(config.telegram.groupId, audio, { caption, ...options });
+    return { id: sent.message_id };
+  }
+
   async initialize() {
     // Polling starts automatically in constructor
   }
@@ -76,13 +82,13 @@ class TelegramClient {
         require('../bridge/index').saveMappings(); // Force save to disk
         this.unlinkStates.delete(tgId);
         try {
-          await this.bot.sendMessage(tgId, 'Unlinked successfully.');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.success'));
         } catch (e) {
           console.error('Send error for unlink success:', e);
         }
       } else {
         try {
-          await this.bot.sendMessage(tgId, 'No pending unlink confirmation or expired.');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.no_pending'));
         } catch (e) {
           console.error('Send error for no pending:', e);
         }
@@ -94,7 +100,7 @@ class TelegramClient {
       const user = userMap.get(tgId);
       if (!user) {
         try {
-          await this.bot.sendMessage(tgId, 'You are not linked.');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.not_linked'));
         } catch (e) {
           console.error('Send error for not linked:', e);
         }
@@ -103,7 +109,7 @@ class TelegramClient {
       // Set state
       this.unlinkStates.set(tgId, { timestamp: Date.now() });
       try {
-        await this.bot.sendMessage(tgId, 'Are you sure you want to unlink? Reply "yes" to confirm within 30 seconds.');
+        await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.confirm'));
       } catch (e) {
         console.error('Send error for unlink confirm:', e);
       }
@@ -117,7 +123,7 @@ class TelegramClient {
         await this.handleLink(tgId, msg, phone, shortname);
       } else {
         try {
-          await this.bot.sendMessage(tgId, 'Usage: /link <phone> <shortname>\nExample: /link 1234567890 myname');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.usage'));
         } catch (e) {
           console.error('Send error for usage:', e);
         }
@@ -126,7 +132,7 @@ class TelegramClient {
     }
 
     try {
-      await this.bot.sendMessage(tgId, 'Unknown command. Use /link <phone> <shortname> to link or /unlink to unlink.');
+      await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unknown_command'));
     } catch (e) {
       console.error('Send error for unknown:', e);
     }
@@ -146,7 +152,7 @@ class TelegramClient {
     if (!/^\d{10,15}$/.test(phone)) {
       console.log('Invalid phone');
       try {
-        await this.bot.sendMessage(tgId, 'Invalid phone number. Use digits only, 10-15 characters.');
+        await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.invalid_phone'));
       } catch (e) {
         console.error('Send error for invalid phone:', e);
       }
@@ -157,7 +163,7 @@ class TelegramClient {
     if (shortname.length > 9 || shortname.length < 1 || !/^[a-zA-Z0-9]+$/.test(shortname)) {
       console.log('Invalid shortname');
       try {
-        await this.bot.sendMessage(tgId, 'Invalid shortname. Use 1-9 alphanumeric characters.');
+        await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.invalid_shortname'));
       } catch (e) {
         console.error('Send error for invalid shortname:', e);
       }
@@ -171,7 +177,7 @@ class TelegramClient {
     for (const [key, value] of userMap) {
       if (value.phoneNumber === phone) {
         try {
-          await this.bot.sendMessage(tgId, 'Phone number already linked. Use /unlink to unlink first.');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.phone_taken'));
         } catch (e) {
           console.error('Send error for duplicate phone:', e);
         }
@@ -179,7 +185,7 @@ class TelegramClient {
       }
       if (value.shortname === shortname) {
         try {
-          await this.bot.sendMessage(tgId, 'Shortname already in use. Choose a different one or use /unlink to unlink.');
+          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.shortname_taken'));
         } catch (e) {
           console.error('Send error for duplicate shortname:', e);
         }
@@ -198,7 +204,7 @@ class TelegramClient {
     console.log('Mappings stored');
 
     try {
-      await this.bot.sendMessage(tgId, `Linked! Your shortname: ${shortname}`);
+      await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.success', { shortname }));
       console.log('Response sent');
     } catch (e) {
       console.error('Send error for success:', e);
@@ -209,7 +215,7 @@ class TelegramClient {
     let finalShortname = null;
     if (shortname && shortname.toLowerCase() !== 'skip') {
       if (shortname.length > 9 || !/^[a-zA-Z0-9]+$/.test(shortname)) {
-        this.bot.sendMessage(tgId, 'Invalid shortname. Use 1-9 alphanumeric chars, or reply "skip".');
+        this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.invalid_shortname_retry'));
         return;
       }
       finalShortname = shortname;
@@ -233,7 +239,7 @@ class TelegramClient {
     });
 
     this.userStates.delete(tgId);
-    this.bot.sendMessage(tgId, `Linked! Your shortname: ${finalShortname}`);
+    this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.success', { shortname: finalShortname }));
   }
 }
 
