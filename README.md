@@ -12,7 +12,7 @@ A Node.js application that bridges messages between WhatsApp and Telegram groups
 - Logging and error handling
 
 ## Quick Setup
-See `docs/SETUP.md` for easy step-by-step instructions.
+See `docs/SETUP.md` for local setup or `docs/DOCKER_SETUP.md` for Docker deployment.
 
 ### Local Setup
 1. Clone repo
