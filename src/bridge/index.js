@@ -276,13 +276,28 @@ async function forwardToTelegram(msg, replyId) {
   const options = replyId ? { reply_to_message_id: replyId, parse_mode: 'HTML' } : { parse_mode: 'HTML' };
 
   if (media) {
-    const mediaData = await downloadMedia(originalMsg, 'telegram');
-    if (mediaData.type === 'image') {
-      return await telegramClient.sendPhoto(mediaData.data, embedText, options);
-    } else if (mediaData.type === 'document') {
-      return await telegramClient.sendDocument(mediaData.data, embedText, options);
-    } else if (mediaData.type === 'video') {
-      return await telegramClient.sendVideo(mediaData.data, embedText, options);
+    if (originalMsg.platform === 'whatsapp') {
+      const mediaData = await downloadMedia(originalMsg, 'whatsapp');
+      const mimeType = originalMsg.mimetype || 'application/octet-stream';
+      const filename = originalMsg.filename || 'file';
+      if (mimeType.startsWith('image/')) {
+        return await telegramClient.sendPhoto(mediaData, embedText, options);
+      } else if (mimeType.startsWith('video/')) {
+        return await telegramClient.sendVideo(mediaData, embedText, options);
+      } else {
+        return await telegramClient.sendDocument(mediaData, embedText, { ...options, filename });
+      }
+    } else {
+      const mediaData = await downloadMedia(originalMsg, 'telegram');
+      if (mediaData.type === 'image') {
+        return await telegramClient.sendPhoto(mediaData.data, embedText, options);
+      } else if (mediaData.type === 'document') {
+        return await telegramClient.sendDocument(mediaData.data, embedText, options);
+      } else if (mediaData.type === 'video') {
+        return await telegramClient.sendVideo(mediaData.data, embedText, options);
+      } else if (mediaData.type === 'audio') {
+        return await telegramClient.sendDocument(mediaData.data, embedText, options);
+      }
     }
   } else {
     return await telegramClient.sendMessage(embedText, options);
