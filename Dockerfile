@@ -17,7 +17,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Copy ecosystem config
+# Copy main files
+COPY server.js ./
 COPY ecosystem.config.js ./
 
 # Copy source code explicitly
