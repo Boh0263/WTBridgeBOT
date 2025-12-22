@@ -7,7 +7,8 @@ const fs = require('fs');
 async function setupWhatsApp() {
   const client = new Client({
     authStrategy: new LocalAuth({
-      clientId: 'whatsapp-session'
+      clientId: 'whatsapp-session',
+      dataPath: process.env.WA_AUTH_DIR || '.wwebjs_auth'
     }),
     puppeteer: {
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
