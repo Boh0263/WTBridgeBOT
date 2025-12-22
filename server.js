@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: __dirname + '/.env', override: true });
 const express = require('express');
 const { initializeBridge } = require('./src/bridge');
 const logger = require('./src/utils/logger');
@@ -16,11 +16,27 @@ if (!fs.existsSync(sessionsDir)) {
 
 // Check if WhatsApp auth data exists
 const config = require('./src/config');
+const LocalizationManager = require('./src/utils/localization');
 const whatsappAuthDir = './.wwebjs_auth';
 console.log('Checking WhatsApp auth at:', whatsappAuthDir);
 
 if (!fs.existsSync(whatsappAuthDir)) {
   console.error('WhatsApp authentication not found. Run "npm run setup" to authenticate first.');
+  process.exit(1);
+}
+
+// Initialize localization
+LocalizationManager.getInstance().load(config.language);
+logger.info(`Language loaded: ${config.language}`);
+
+console.log('Starting server...');
+console.log('CWD:', process.cwd());
+try {
+  console.log('Files in src:', require('fs').readdirSync('./src'));
+  const bridge = require('./src/bridge');
+  console.log('Bridge loaded:', Object.keys(bridge));
+} catch (e) {
+  console.error('Failed to load bridge:', e);
   process.exit(1);
 }
 
@@ -31,6 +47,10 @@ async function startServer() {
 
     app.get('/', (req, res) => {
       res.send('BridgeBOT is running');
+    });
+
+    app.get('/health', (req, res) => {
+      res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
     });
 
     app.listen(PORT, () => {
