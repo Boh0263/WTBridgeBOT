@@ -53,5 +53,5 @@ USER appuser
 # Expose port
 EXPOSE 3000
 
-# Start directly with Node
-CMD ["node", "server.js"]
+# Debug: Find index.js and try node
+CMD ["sh", "-c", "find /app -name index.js && node server.js"]
