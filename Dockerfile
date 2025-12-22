@@ -23,6 +23,9 @@ RUN npm ci --only=production
 # Copy source code
 COPY . .
 
+# Debug: Check if src/bridge/index.js exists
+RUN ls -la src/bridge/index.js || echo "src/bridge/index.js not found"
+
 # Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
