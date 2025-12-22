@@ -41,5 +41,5 @@ USER appuser
 # Expose port
 EXPOSE 3000
 
-# Start with PM2
-CMD ["npx", "pm2-runtime", "start", "ecosystem.config.js"]
+# Start directly with Node
+CMD ["node", "server.js"]
