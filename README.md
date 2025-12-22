@@ -26,12 +26,12 @@ See `docs/SETUP.md` for local setup or `docs/DOCKER_SETUP.md` for Docker deploym
 4. Set up WhatsApp: `npm run setup` (scan QR)
 5. `npm start`
 
-### Docker Setup
-1. Clone repo
-2. Copy `.env.example` to `.env` and fill in values
-3. Authenticate WhatsApp: `WA_AUTH_DIR=./sessions npm run setup` (scan QR; saves to `./sessions/`)
-4. `docker-compose up --build -d`
-5. Check logs: `docker-compose logs -f`
+### Docker Setup (docker branch)
+For Docker deployment, use the `docker` branch:
+```bash
+git checkout docker
+```
+Then follow the Docker tutorial in `docs/DOCKER_SETUP.md`.
 
 ## Environment Variables
 - `WHATSAPP_GROUP_ID`: Group ID (e.g., `120363123456789012@g.us`)
