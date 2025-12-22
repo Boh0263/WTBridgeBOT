@@ -6,13 +6,18 @@ A Node.js application that bridges messages between WhatsApp and Telegram groups
 - Bidirectional message forwarding
 - Media support (images, documents, videos)
 - Reply and mention preservation
+- Cross-platform mentions with user linking
 - Queue-based processing for robustness
 - Persistent mappings for continuity
 - Separate setup for WhatsApp authentication
 - Logging and error handling
+- Localization support (English/Italian)
 
 ## Quick Setup
 See `docs/SETUP.md` for local setup or `docs/DOCKER_SETUP.md` for Docker deployment.
+
+## User Guides
+- `docs/LINKING_GUIDE.md`: How to link accounts for cross-platform mentions.
 
 ### Local Setup
 1. Clone repo
