@@ -6,6 +6,7 @@ const { MessageQueue } = require('./queue');
 const { MessageMedia } = require('whatsapp-web.js');
 const logger = require('../utils/logger');
 const config = require('../config');
+const LocalizationManager = require('../utils/localization');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,11 +40,11 @@ async function handleWAPrivate(msg) {
 
       console.log('Confirming link for WA participant ID:', participantId, 'to TG ID:', tgId);
 
-      try {
-        await msg.reply('Confirmation received. Linking your accounts...');
-      } catch (error) {
-        logger.error('Failed to send confirmation received reply:', error);
-      }
+       try {
+         await msg.reply(LocalizationManager.getInstance().t('iam.confirm_received'));
+       } catch (error) {
+         logger.error('Failed to send confirmation received reply:', error);
+       }
 
       // Link WA to TG
       const user = userMap.get(tgId);
@@ -56,32 +57,32 @@ async function handleWAPrivate(msg) {
       waUserStates.delete(waId);
 
       console.log('Link successful');
-      try {
-        await msg.reply(`Linked successfully! Your shortname is ${shortname}.`);
-      } catch (error) {
-        logger.error('Failed to send success reply:', error);
-      }
+       try {
+         await msg.reply(LocalizationManager.getInstance().t('iam.success', { shortname }));
+       } catch (error) {
+         logger.error('Failed to send success reply:', error);
+       }
     } else if (state) {
       // Expired
       waUserStates.delete(waId);
-      try {
-        await msg.reply('Confirmation expired. Please try !iam again.');
-      } catch (error) {
-        logger.error('Failed to send expired reply:', error);
-      }
+       try {
+         await msg.reply(LocalizationManager.getInstance().t('iam.expired'));
+       } catch (error) {
+         logger.error('Failed to send expired reply:', error);
+       }
     } else {
-      try {
-        await msg.reply('No pending confirmation found.');
-      } catch (error) {
-        logger.error('Failed to send no pending reply:', error);
-      }
+       try {
+         await msg.reply(LocalizationManager.getInstance().t('iam.no_pending'));
+       } catch (error) {
+         logger.error('Failed to send no pending reply:', error);
+       }
     }
   } else {
-    try {
-      await msg.reply('Unknown command. Reply "yes" to confirm linking.');
-    } catch (error) {
-      logger.error('Failed to send unknown reply:', error);
-    }
+     try {
+       await msg.reply(LocalizationManager.getInstance().t('iam.unknown'));
+     } catch (error) {
+       logger.error('Failed to send unknown reply:', error);
+     }
   }
 }
 
@@ -234,11 +235,12 @@ async function processQueue(queue, targetPlatform) {
         }
 
         // Replace mentions
-        processed.text = replaceMentions(processed.text, processed.mentions, targetPlatform);
+        const { newText, mentionedIds } = replaceMentions(processed.text, processed.mentions, targetPlatform);
+        processed.text = newText;
 
         const forwardedId = targetPlatform === 'telegram' ?
           await forwardToTelegram(processed, replyId) :
-          await forwardToWhatsApp(processed, replyId);
+          await forwardToWhatsApp(processed, replyId, mentionedIds);
 
         // Store mapping
         const originalKey = `${item.platform}:${processed.originalId}`;
@@ -287,7 +289,7 @@ async function forwardToTelegram(msg, replyId) {
   }
 }
 
-async function forwardToWhatsApp(msg, replyId) {
+async function forwardToWhatsApp(msg, replyId, mentionedIds = []) {
   const { text, media, originalMsg, userInfo } = msg;
 
   // Lookup sender info from userMap
@@ -300,6 +302,9 @@ async function forwardToWhatsApp(msg, replyId) {
   const formattedText = `*${senderName}:*\n${content}\n_${new Date().toLocaleString()}_`;
 
   const options = replyId ? { quotedMessageId: replyId } : {};
+  if (mentionedIds.length > 0) {
+    options.mentions = mentionedIds;
+  }
   if (media) {
     let mediaData;
     if (originalMsg.platform === 'whatsapp') {
@@ -307,11 +312,13 @@ async function forwardToWhatsApp(msg, replyId) {
     } else {
       const downloaded = await downloadMedia(originalMsg, 'telegram');
       if (downloaded.type === 'image') {
-        mediaData = MessageMedia.fromBuffer(downloaded.data, 'image/jpeg');
+        mediaData = new MessageMedia(downloaded.mimeType || 'image/jpeg', downloaded.data.toString('base64'));
       } else if (downloaded.type === 'document') {
-        mediaData = MessageMedia.fromBuffer(downloaded.data, 'application/octet-stream');
+        mediaData = new MessageMedia(downloaded.mimeType || 'application/octet-stream', downloaded.data.toString('base64'), downloaded.fileName);
       } else if (downloaded.type === 'video') {
-        mediaData = MessageMedia.fromBuffer(downloaded.data, 'video/mp4');
+        mediaData = new MessageMedia(downloaded.mimeType || 'video/mp4', downloaded.data.toString('base64'));
+      } else if (downloaded.type === 'audio') {
+        mediaData = new MessageMedia(downloaded.mimeType || 'audio/ogg', downloaded.data.toString('base64'), downloaded.fileName);
       }
     }
     return await whatsappClient.sendMessage(config.whatsapp.groupId, formattedText, mediaData, options);
@@ -324,16 +331,47 @@ async function forwardToWhatsApp(msg, replyId) {
 
 function replaceMentions(text, mentions, targetPlatform) {
   let newText = text;
+  let mentionedIds = [];
   mentions.forEach(mention => {
     const key = `${mention.platform}:${mention.id || mention.username}`;
-    const user = userMap.get(key);
-    if (user) {
+    const mentionedUser = userMap.get(key);
+    if (mentionedUser) {
+      let counterpartUser = null;
       const currentMention = mention.platform === 'whatsapp' ? `@${mention.id}` : `@${mention.username}`;
-      const replacement = targetPlatform === 'telegram' ? (user.username ? `@${user.username}` : user.name) : `@${user.name}`;
-      newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+      if (mention.platform === 'whatsapp') {
+        // Find Telegram counterpart
+        const tgId = waIdToTgId.get(mention.id);
+        if (tgId) {
+          const counterpartKey = `telegram:${tgId}`;
+          counterpartUser = userMap.get(counterpartKey);
+        }
+      } else { // telegram
+        // Find WhatsApp counterpart
+        const waId = mentionedUser.waId;
+        if (waId) {
+          const counterpartKey = `whatsapp:${waId}`;
+          counterpartUser = userMap.get(counterpartKey);
+        }
+      }
+      if (counterpartUser) {
+        // Mapped: replace with counterpart's tag
+        if (targetPlatform === 'telegram') {
+          const replacement = counterpartUser.username ? `@${counterpartUser.username}` : `@${counterpartUser.name}`;
+          newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+        } else { // whatsapp
+          const replacement = `@${counterpartUser.name}`;
+          newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+          // Add to mentionedIds
+          mentionedIds.push(counterpartUser.waId);
+        }
+      } else {
+        // Unmapped: replace with plain @name
+        const replacement = `@${mentionedUser.name}`;
+        newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+      }
     }
   });
-  return newText;
+  return { newText, mentionedIds };
 }
 
 async function handleIAMCommand(msg) {
@@ -341,22 +379,22 @@ async function handleIAMCommand(msg) {
   const waId = msg.author || msg.from; // Group participant ID
   const parts = text.trim().split(/\s+/);
   if (parts.length !== 2) {
-    try {
-      await whatsappClient.sendMessage(waId + '@c.us', 'Usage: !iam <shortname>');
-    } catch (error) {
-      logger.error('Failed to send usage message:', error);
-    }
+     try {
+       await whatsappClient.sendMessage(waId + '@c.us', LocalizationManager.getInstance().t('iam.usage'));
+     } catch (error) {
+       logger.error('Failed to send usage message:', error);
+     }
     return;
   }
   const shortname = parts[1].trim().toLowerCase();
 
   // Validate shortname
   if (shortname.length > 9 || shortname.length < 1 || !/^[a-zA-Z0-9]+$/.test(shortname)) {
-    try {
-      await whatsappClient.sendMessage(waId + '@c.us', 'Invalid shortname. Use 1-9 alphanumeric characters.');
-    } catch (error) {
-      logger.error('Failed to send invalid message:', error);
-    }
+     try {
+       await whatsappClient.sendMessage(waId + '@c.us', LocalizationManager.getInstance().t('iam.invalid_shortname'));
+     } catch (error) {
+       logger.error('Failed to send invalid message:', error);
+     }
     return;
   }
 
@@ -374,22 +412,22 @@ async function handleIAMCommand(msg) {
   }
 
   if (!tgId) {
-    try {
-      await whatsappClient.sendMessage(waId + '@c.us', 'No matching Telegram user found with that shortname.');
-    } catch (error) {
-      logger.error('Failed to send no match message:', error);
-    }
+     try {
+       await whatsappClient.sendMessage(waId + '@c.us', LocalizationManager.getInstance().t('iam.no_match'));
+     } catch (error) {
+       logger.error('Failed to send no match message:', error);
+     }
     return;
   }
 
   // Set state for confirmation
   waUserStates.set(tgData.phoneNumber + '@c.us', { shortname, tgData, tgId, groupChatId: msg.from, participantId: waId, timestamp: Date.now() });
 
-  try {
-    await whatsappClient.sendMessage(tgData.phoneNumber + '@c.us', `Is this you (${tgData.name})? Reply 'yes' within 30 seconds to confirm linking.`);
-  } catch (error) {
-    logger.error('Failed to send confirmation message:', error);
-  }
+   try {
+     await whatsappClient.sendMessage(tgData.phoneNumber + '@c.us', LocalizationManager.getInstance().t('iam.confirm', { name: tgData.name }));
+   } catch (error) {
+     logger.error('Failed to send confirmation message:', error);
+   }
 }
 
 module.exports = { initializeBridge, userMap, waIdToTgId, saveMappings };

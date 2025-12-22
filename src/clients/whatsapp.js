@@ -24,11 +24,14 @@ class WhatsAppClient {
 
     this.client.on('message', async msg => {
       if (msg.fromMe) return; // Ignore own messages to prevent loops
-      if (msg.from === config.whatsapp.groupId) {
-        if (this.messageCallback) this.messageCallback(msg);
-      } else {
+      if (msg.from.endsWith('@c.us')) {
+        // Private message
         if (this.privateCallback) this.privateCallback(msg);
+      } else if (msg.from === config.whatsapp.groupId) {
+        // Group message from configured group
+        if (this.messageCallback) this.messageCallback(msg);
       }
+      // Ignore messages from other groups or invalid sources
     });
   }
 

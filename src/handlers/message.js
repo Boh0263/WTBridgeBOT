@@ -32,6 +32,10 @@ async function processMessage(msg, platform) {
         userInfo.shortname = user.shortname;
       }
     }
+    // Extract mentions
+    if (msg.mentionedIds) {
+      mentions = msg.mentionedIds.map(id => ({ id, platform: 'whatsapp' }));
+    }
   } else if (platform === 'telegram') {
     text = msg.text || msg.caption || '';
     // Handle media for telegram if needed
