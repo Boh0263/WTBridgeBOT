@@ -56,8 +56,10 @@ Create directories for persistent data:
 
 ```bash
 mkdir -p data/bridge data/locales logs sessions
-chmod -R 755 data logs sessions
+chmod -R 775 data logs sessions
 ```
+
+**Important**: The `775` permissions allow the container user to write to these directories. If you encounter permission issues, ensure your user owns these directories or adjust as needed for your system.
 
 Copy existing data if migrating from local setup:
 ```bash
@@ -110,6 +112,7 @@ cp -r .wwebjs_auth/* sessions/ 2>/dev/null || true
 - Check logs: `docker-compose logs`
 - Ensure `.env` is correct
 - Verify WhatsApp auth in `./sessions/`
+- **Permission Issues**: If "permission denied" errors for logs, run `sudo chown -R $USER:$USER data logs sessions` and `chmod -R 775 data logs sessions`
 
 ### Messages Not Forwarding
 - Check group IDs in `.env`
