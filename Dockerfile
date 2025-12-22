@@ -17,11 +17,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Copy ecosystem config
+COPY ecosystem.config.js ./
 
-# Copy source code
-COPY . .
+# Copy source code explicitly
+COPY src/ src/
 
 # Debug: Check if src/bridge/index.js exists
 RUN ls -la src/bridge/index.js || echo "src/bridge/index.js not found"
