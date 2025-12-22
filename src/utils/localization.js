@@ -18,13 +18,13 @@ class LocalizationManager {
   }
 
   load(language) {
-    const filePath = path.join(__dirname, '..', 'locales', `${language}.json`);
+    const filePath = path.join(process.cwd(), 'src', 'locales', `${language}.json`);
     try {
       if (fs.existsSync(filePath)) {
         this.translations = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       } else {
         // Fallback to English
-        const enPath = path.join(__dirname, '..', 'locales', 'en.json');
+        const enPath = path.join(process.cwd(), 'src', 'locales', 'en.json');
         this.translations = JSON.parse(fs.readFileSync(enPath, 'utf8'));
       }
     } catch (error) {
