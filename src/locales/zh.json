@@ -1,0 +1,23 @@
+{
+  "unlink.success": "取消链接成功。",
+  "unlink.no_pending": "没有待处理的取消链接确认或已过期。",
+  "unlink.not_linked": "您未链接。",
+  "unlink.confirm": "您确定要取消链接吗？在30秒内准确回复 'yes' 以确认。",
+  "link.usage": "用法: /link <电话> <短名>\n示例: /link 861234567890 wode",
+  "unknown_command": "未知命令。使用 /link <电话> <短名> 链接或 /unlink 取消链接。",
+  "link.invalid_phone": "无效电话号码。仅使用数字，10-15字符。",
+  "link.invalid_shortname": "无效短名。使用1-9个字母数字字符。",
+  "link.phone_taken": "电话号码已链接。首先取消链接。",
+  "link.shortname_taken": "短名已被占用。选择另一个或取消链接。",
+  "link.success": "已链接！您的短名: {{shortname}}",
+  "link.invalid_shortname_retry": "无效短名。使用1-9个字母数字字符，或回复 \"跳过\"。",
+  "iam.confirm_received": "确认收到。正在链接账户...",
+  "iam.success": "链接成功！您的短名是 {{shortname}}。",
+  "iam.expired": "确认过期。请再次尝试 !iam。",
+  "iam.no_pending": "未找到待处理的确认。",
+  "iam.unknown": "未知命令。准确回复 'yes' 以确认链接。",
+  "iam.usage": "用法: !iam <短名>",
+  "iam.invalid_shortname": "无效短名。使用1-9个字母数字字符。",
+  "iam.no_match": "未找到具有该短名的匹配Telegram用户。",
+  "iam.confirm": "是您吗 ({{name}})？在30秒内准确回复 'yes' 以确认链接。"
+}

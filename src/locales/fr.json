@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Déconnexion réussie.",
+  "unlink.no_pending": "Aucune confirmation de déconnexion en attente ou expirée.",
+  "unlink.not_linked": "Vous n'êtes pas lié.",
+  "unlink.confirm": "Êtes-vous sûr de vouloir vous déconnecter ? Répondez exactement 'yes' dans les 30 secondes pour confirmer.",
+  "link.usage": "Usage: /link <téléphone> <nomcourt>\nExemple: /link 331234567890 monnom",
+  "unknown_command": "Commande inconnue. Utilisez /link <téléphone> <nomcourt> pour lier ou /unlink pour délier.",
+  "link.invalid_phone": "Numéro de téléphone invalide. Utilisez uniquement des chiffres, 10-15 caractères.",
+  "link.invalid_shortname": "Nom court invalide. Utilisez 1-9 caractères alphanumériques.",
+  "link.phone_taken": "Numéro de téléphone déjà lié. Déconnectez d'abord.",
+  "link.shortname_taken": "Nom court déjà pris. Choisissez-en un autre ou déconnectez.",
+  "link.success": "Lié ! Votre nom court : {{shortname}}",
+  "link.invalid_shortname_retry": "Nom court invalide. Utilisez 1-9 caractères alphanumériques, ou répondez \"sauter\".",
+  "iam.confirm_received": "Confirmation reçue. Liaison des comptes...",
+  "iam.success": "Liaison réussie ! Votre nom court est {{shortname}}.",
+  "iam.expired": "Confirmation expirée. Essayez !iam à nouveau.",
+  "iam.no_pending": "Aucune confirmation en attente trouvée.",
+  "iam.unknown": "Commande inconnue. Répondez exactement 'yes' pour confirmer la liaison.",
+  "iam.usage": "Usage: !iam <nomcourt>",
+  "iam.invalid_shortname": "Nom court invalide. Utilisez 1-9 caractères alphanumériques.",
+  "iam.no_match": "Aucun utilisateur Telegram correspondant trouvé avec ce nom court.",
+  "iam.confirm": "Est-ce vous ({{name}}) ? Répondez exactement 'yes' dans les 30 secondes pour confirmer la liaison."
+}

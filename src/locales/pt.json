@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Desvinculação bem-sucedida.",
+  "unlink.no_pending": "Nenhuma confirmação de desvinculação pendente ou expirada.",
+  "unlink.not_linked": "Você não está vinculado.",
+  "unlink.confirm": "Tem certeza de que deseja desvincular? Responda exatamente 'yes' em 30 segundos para confirmar.",
+  "link.usage": "Uso: /link <telefone> <nomecurto>\nExemplo: /link 551234567890 meunome",
+  "unknown_command": "Comando desconhecido. Use /link <telefone> <nomecurto> para vincular ou /unlink para desvincular.",
+  "link.invalid_phone": "Número de telefone inválido. Use apenas dígitos, 10-15 caracteres.",
+  "link.invalid_shortname": "Nome curto inválido. Use 1-9 caracteres alfanuméricos.",
+  "link.phone_taken": "Número de telefone já vinculado. Desvincule primeiro.",
+  "link.shortname_taken": "Nome curto já tomado. Escolha outro ou desvincule.",
+  "link.success": "Vinculado! Seu nome curto: {{shortname}}",
+  "link.invalid_shortname_retry": "Nome curto inválido. Use 1-9 caracteres alfanuméricos, ou responda \"pular\".",
+  "iam.confirm_received": "Confirmação recebida. Vinculando contas...",
+  "iam.success": "Vinculação bem-sucedida! Seu nome curto é {{shortname}}.",
+  "iam.expired": "Confirmação expirada. Tente !iam novamente.",
+  "iam.no_pending": "Nenhuma confirmação pendente encontrada.",
+  "iam.unknown": "Comando desconhecido. Responda exatamente 'yes' para confirmar a vinculação.",
+  "iam.usage": "Uso: !iam <nomecurto>",
+  "iam.invalid_shortname": "Nome curto inválido. Use 1-9 caracteres alfanuméricos.",
+  "iam.no_match": "Nenhum usuário Telegram correspondente encontrado com esse nome curto.",
+  "iam.confirm": "É você ({{name}})? Responda exatamente 'yes' em 30 segundos para confirmar a vinculação."
+}

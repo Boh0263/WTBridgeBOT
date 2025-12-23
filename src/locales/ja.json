@@ -1,0 +1,23 @@
+{
+  "unlink.success": "リンク解除が成功しました。",
+  "unlink.no_pending": "保留中のリンク解除確認がないか、期限切れです。",
+  "unlink.not_linked": "リンクされていません。",
+  "unlink.confirm": "本当にリンクを解除しますか？30秒以内に正確に 'yes' と返信して確認してください。",
+  "link.usage": "使用法: /link <電話> <短縮名>\n例: /link 811234567890 watashi",
+  "unknown_command": "不明なコマンドです。リンクするには /link <電話> <短縮名> を、解除するには /unlink を使用してください。",
+  "link.invalid_phone": "無効な電話番号です。数字のみを使用し、10-15文字にしてください。",
+  "link.invalid_shortname": "無効な短縮名です。1-9文字の英数字を使用してください。",
+  "link.phone_taken": "電話番号は既にリンクされています。まず解除してください。",
+  "link.shortname_taken": "短縮名は既に使用されています。他のものを選択するか、解除してください。",
+  "link.success": "リンクされました！あなたの短縮名: {{shortname}}",
+  "link.invalid_shortname_retry": "無効な短縮名です。1-9文字の英数字を使用するか、\"skip\" と返信してください。",
+  "iam.confirm_received": "確認を受け取りました。アカウントをリンク中...",
+  "iam.success": "リンクが成功しました！あなたの短縮名は {{shortname}} です。",
+  "iam.expired": "確認が期限切れです。再度 !iam を試してください。",
+  "iam.no_pending": "保留中の確認が見つかりません。",
+  "iam.unknown": "不明なコマンドです。リンクを確認するには正確に 'yes' と返信してください。",
+  "iam.usage": "使用法: !iam <短縮名>",
+  "iam.invalid_shortname": "無効な短縮名です。1-9文字の英数字を使用してください。",
+  "iam.no_match": "その短縮名に一致するTelegramユーザーが見つかりません。",
+  "iam.confirm": "あなたですか ({{name}})？30秒以内に正確に 'yes' と返信してリンクを確認してください。"
+}

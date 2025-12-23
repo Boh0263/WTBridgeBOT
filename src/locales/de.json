@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Trennung erfolgreich.",
+  "unlink.no_pending": "Keine ausstehende Trennungsbestätigung oder abgelaufen.",
+  "unlink.not_linked": "Sie sind nicht verknüpft.",
+  "unlink.confirm": "Sind Sie sicher, dass Sie sich trennen möchten? Antworten Sie genau 'yes' innerhalb von 30 Sekunden, um zu bestätigen.",
+  "link.usage": "Verwendung: /link <Telefon> <Kurzname>\nBeispiel: /link 491234567890 meinname",
+  "unknown_command": "Unbekannter Befehl. Verwenden Sie /link <Telefon> <Kurzname> zum Verknüpfen oder /unlink zum Trennen.",
+  "link.invalid_phone": "Ungültige Telefonnummer. Verwenden Sie nur Ziffern, 10-15 Zeichen.",
+  "link.invalid_shortname": "Ungültiger Kurzname. Verwenden Sie 1-9 alphanumerische Zeichen.",
+  "link.phone_taken": "Telefonnummer bereits verknüpft. Trennen Sie zuerst.",
+  "link.shortname_taken": "Kurzname bereits vergeben. Wählen Sie einen anderen oder trennen Sie.",
+  "link.success": "Verknüpft! Ihr Kurzname: {{shortname}}",
+  "link.invalid_shortname_retry": "Ungültiger Kurzname. Verwenden Sie 1-9 alphanumerische Zeichen, oder antworten Sie \"überspringen\".",
+  "iam.confirm_received": "Bestätigung erhalten. Verknüpfung der Konten...",
+  "iam.success": "Verknüpfung erfolgreich! Ihr Kurzname ist {{shortname}}.",
+  "iam.expired": "Bestätigung abgelaufen. Versuchen Sie !iam erneut.",
+  "iam.no_pending": "Keine ausstehende Bestätigung gefunden.",
+  "iam.unknown": "Unbekannter Befehl. Antworten Sie genau 'yes', um die Verknüpfung zu bestätigen.",
+  "iam.usage": "Verwendung: !iam <Kurzname>",
+  "iam.invalid_shortname": "Ungültiger Kurzname. Verwenden Sie 1-9 alphanumerische Zeichen.",
+  "iam.no_match": "Kein passender Telegram-Benutzer mit diesem Kurznamen gefunden.",
+  "iam.confirm": "Sind Sie das ({{name}})? Antworten Sie genau 'yes' innerhalb von 30 Sekunden, um die Verknüpfung zu bestätigen."
+}
