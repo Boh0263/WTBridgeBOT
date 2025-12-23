@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Hủy liên kết thành công.",
+  "unlink.no_pending": "Không có xác nhận hủy liên kết đang chờ hoặc đã hết hạn.",
+  "unlink.not_linked": "Bạn chưa được liên kết.",
+  "unlink.confirm": "Bạn có chắc chắn muốn hủy liên kết? Trả lời chính xác 'yes' trong vòng 30 giây để xác nhận.",
+  "link.usage": "Cách sử dụng: /link <điện thoại> <tênngắn>\nVí dụ: /link 841234567890 toi",
+  "unknown_command": "Lệnh không xác định. Sử dụng /link <điện thoại> <tênngắn> để liên kết hoặc /unlink để hủy liên kết.",
+  "link.invalid_phone": "Số điện thoại không hợp lệ. Chỉ sử dụng số, 10-15 ký tự.",
+  "link.invalid_shortname": "Tên ngắn không hợp lệ. Sử dụng 1-9 ký tự chữ số.",
+  "link.phone_taken": "Số điện thoại đã được liên kết. Hủy liên kết trước.",
+  "link.shortname_taken": "Tên ngắn đã được sử dụng. Chọn tên khác hoặc hủy liên kết.",
+  "link.success": "Đã liên kết! Tên ngắn của bạn: {{shortname}}",
+  "link.invalid_shortname_retry": "Tên ngắn không hợp lệ. Sử dụng 1-9 ký tự chữ số hoặc trả lời \"bỏ qua\".",
+  "iam.confirm_received": "Đã nhận xác nhận. Đang liên kết tài khoản...",
+  "iam.success": "Liên kết thành công! Tên ngắn của bạn là {{shortname}}.",
+  "iam.expired": "Xác nhận đã hết hạn. Thử !iam lại.",
+  "iam.no_pending": "Không tìm thấy xác nhận đang chờ.",
+  "iam.unknown": "Lệnh không xác định. Trả lời chính xác 'yes' để xác nhận liên kết.",
+  "iam.usage": "Cách sử dụng: !iam <tênngắn>",
+  "iam.invalid_shortname": "Tên ngắn không hợp lệ. Sử dụng 1-9 ký tự chữ số.",
+  "iam.no_match": "Không tìm thấy người dùng Telegram khớp với tên ngắn đó.",
+  "iam.confirm": "Là bạn phải không ({{name}})? Trả lời chính xác 'yes' trong vòng 30 giây để xác nhận liên kết."
+}

@@ -1,0 +1,23 @@
+{
+  "unlink.success": "Bağlantı kaldırma başarılı.",
+  "unlink.no_pending": "Bekleyen bağlantı kaldırma onayı yok veya süresi dolmuş.",
+  "unlink.not_linked": "Bağlı değilsiniz.",
+  "unlink.confirm": "Gerçekten bağlantıyı kaldırmak istiyor musunuz? Onaylamak için 30 saniye içinde tam olarak 'yes' yanıtlayın.",
+  "link.usage": "Kullanım: /link <telefon> <kısaisim>\nÖrnek: /link 901234567890 ben",
+  "unknown_command": "Bilinmeyen komut. Bağlamak için /link <telefon> <kısaisim> veya kaldırmak için /unlink kullanın.",
+  "link.invalid_phone": "Geçersiz telefon numarası. Sadece rakamlar kullanın, 10-15 karakter.",
+  "link.invalid_shortname": "Geçersiz kısa isim. 1-9 alfanümerik karakter kullanın.",
+  "link.phone_taken": "Telefon numarası zaten bağlı. Önce kaldırın.",
+  "link.shortname_taken": "Kısa isim zaten alınmış. Başka bir tane seçin veya kaldırın.",
+  "link.success": "Bağlandı! Kısa isminiz: {{shortname}}",
+  "link.invalid_shortname_retry": "Geçersiz kısa isim. 1-9 alfanümerik karakter kullanın veya \"atla\" yanıtlayın.",
+  "iam.confirm_received": "Onay alındı. Hesaplar bağlanıyor...",
+  "iam.success": "Bağlantı başarılı! Kısa isminiz {{shortname}}.",
+  "iam.expired": "Onay süresi dolmuş. Tekrar !iam deneyin.",
+  "iam.no_pending": "Bekleyen onay bulunamadı.",
+  "iam.unknown": "Bilinmeyen komut. Bağlantıyı onaylamak için tam olarak 'yes' yanıtlayın.",
+  "iam.usage": "Kullanım: !iam <kısaisim>",
+  "iam.invalid_shortname": "Geçersiz kısa isim. 1-9 alfanümerik karakter kullanın.",
+  "iam.no_match": "Bu kısa isimle eşleşen Telegram kullanıcısı bulunamadı.",
+  "iam.confirm": "Sen misin ({{name}})? Bağlantıyı onaylamak için 30 saniye içinde tam olarak 'yes' yanıtlayın."
+}
