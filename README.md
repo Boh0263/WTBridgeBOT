@@ -17,7 +17,7 @@ A Node.js application that bridges messages between WhatsApp and Telegram groups
 See `docs/SETUP.md` for detailed setup instructions, including how to create your Telegram bot with @BotFather.
 
 ## User Guides
-- `docs/LINKING_GUIDE.md`: How to link accounts for cross-platform mentions.
+- `docs/guides/linking/`: Localized guides on linking accounts for cross-platform mentions (available in English, Italian, Spanish, French).
 
 ### Setup
 1. Clone repo

@@ -70,6 +70,7 @@ Follow these simple steps to get your WhatsApp-Telegram bridge running. No codin
 - Send a message in WhatsApp group.
 - Check if it shows in Telegram group.
 - Send a reply or media to test.
+- For advanced features like cross-platform mentions, see `docs/guides/linking/` for your language.
 
 ## Troubleshooting
 - **QR not scanning?** Make sure phone and computer are on same network.
