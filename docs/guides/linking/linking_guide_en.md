@@ -1,8 +1,8 @@
 # How to Link Your WhatsApp and Telegram Accounts
 
-**Note: Cross-platform mentions are currently a work in progress and may not work correctly. The linking process is functional, but mention notifications across platforms have known issues.**
+**⚠️ IMPORTANT: Cross-platform mentions are currently a work in progress and may not work correctly. The account linking process works, but mention notifications across platforms have known bugs and limitations.**
 
-This guide explains how to link your WhatsApp and Telegram accounts so that mentions (@tags) work across both platforms. Once linked, tagging someone in one platform will notify them in the other!
+This comprehensive guide walks you through linking your WhatsApp and Telegram accounts to enable cross-platform user tagging. When properly linked, mentioning someone in one app will attempt to notify them in the other!
 
 ## Prerequisites
 
