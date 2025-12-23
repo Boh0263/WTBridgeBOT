@@ -11,10 +11,10 @@ A Node.js application that bridges messages between WhatsApp and Telegram groups
 - Persistent mappings for continuity
 - Separate setup for WhatsApp authentication
 - Logging and error handling
-- Localization support (English/Italian)
+- Multilingual support (14 languages: English, Spanish, French, German, Italian, Portuguese, Russian, Chinese, Japanese, Korean, Arabic, Hindi, Bengali, Turkish, Vietnamese)
 
-## Quick Setup
-See `docs/SETUP.md` for setup.
+## Setup
+See `docs/SETUP.md` for detailed setup instructions, including how to create your Telegram bot with @BotFather.
 
 ## User Guides
 - `docs/LINKING_GUIDE.md`: How to link accounts for cross-platform mentions.
