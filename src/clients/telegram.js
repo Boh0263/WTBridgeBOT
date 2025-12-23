@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const config = require('../config');
 const logger = require('../utils/logger');
 const LocalizationManager = require('../utils/localization');
+const storage = require('../storage');
 
 class TelegramClient {
   constructor() {
@@ -60,27 +61,21 @@ class TelegramClient {
     this.messageCallback = callback;
   }
 
-  async handlePrivateMessage(msg) {
-    const tgId = msg.from.id;
-    const text = msg.text || '';
-    const userMap = require('../bridge/index').userMap;
+    async handlePrivateMessage(msg) {
+     const tgId = msg.from.id;
+     const text = msg.text || '';
 
     // Check for unlink confirmation
     if (text.toLowerCase() === 'yes') {
       const state = this.unlinkStates.get(tgId);
-      if (state && (Date.now() - state.timestamp < 30000)) {
-        // Delete mappings
-        const { waIdToTgId } = require('../bridge/index');
-        const user = userMap.get(tgId);
-        if (user) {
-          const waId = user.waId;
-          userMap.delete(tgId);
-          if (waId) {
-            waIdToTgId.delete(waId);
-          }
-        }
-        require('../bridge/index').saveMappings(); // Force save to disk
-        this.unlinkStates.delete(tgId);
+       if (state && (Date.now() - state.timestamp < 30000)) {
+         // Delete user
+         const user = storage.getUser(tgId);
+         if (user) {
+           storage.deleteUser(tgId);
+         }
+         storage.saveData(); // Force save to disk
+         this.unlinkStates.delete(tgId);
         try {
           await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.success'));
         } catch (e) {
@@ -96,9 +91,9 @@ class TelegramClient {
       return;
     }
 
-    if (text.startsWith('/unlink')) {
-      const user = userMap.get(tgId);
-      if (!user) {
+     if (text.startsWith('/unlink')) {
+       const user = storage.getUser(tgId);
+       if (!user) {
         try {
           await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('unlink.not_linked'));
         } catch (e) {
@@ -141,7 +136,6 @@ class TelegramClient {
    async handleLink(tgId, msg, phone, shortname) {
     shortname = shortname.trim().toLowerCase();
     const name = msg.from.first_name + (msg.from.last_name ? ' ' + msg.from.last_name : '');
-    const tgUsername = msg.from.username;
 
     // Normalize phone: strip non-digits
     phone = phone.replace(/\D/g, '');
@@ -173,33 +167,41 @@ class TelegramClient {
     console.log('Validation passed');
 
     // Check uniqueness
-    const userMap = require('../bridge/index').userMap;
-    for (const [key, value] of userMap) {
-      if (value.phoneNumber === phone) {
-        try {
-          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.phone_taken'));
-        } catch (e) {
-          console.error('Send error for duplicate phone:', e);
-        }
-        return;
+    if (storage.findUserByPhone(phone)) {
+      try {
+        await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.phone_taken'));
+      } catch (e) {
+        console.error('Send error for duplicate phone:', e);
       }
-      if (value.shortname === shortname) {
-        try {
-          await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.shortname_taken'));
-        } catch (e) {
-          console.error('Send error for duplicate shortname:', e);
-        }
-        return;
+      return;
+    }
+    if (storage.findUserByShortname(shortname)) {
+      try {
+        await this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.shortname_taken'));
+      } catch (e) {
+        console.error('Send error for duplicate shortname:', e);
       }
+      return;
     }
 
-    // Store mappings
-    userMap.set(tgId, {
-      phoneNumber: phone,
-      waId: null,
-      name,
-      shortname
-    });
+    // Store user
+     storage.setUser(tgId, {
+       telegram_id: tgId.toString(),
+       telegram: {
+         name,
+         shortname
+       },
+       whatsapp: {
+         phone_number: phone
+       },
+       linking: {
+         status: 'pending'
+       },
+       metadata: {
+         created_at: Date.now(),
+         updated_at: Date.now()
+       }
+     });
 
     console.log('Mappings stored');
 
@@ -210,37 +212,7 @@ class TelegramClient {
       console.error('Send error for success:', e);
     }
   }
-  handleShortname(tgId, shortname) {
-    const state = this.userStates.get(tgId);
-    let finalShortname = null;
-    if (shortname && shortname.toLowerCase() !== 'skip') {
-      if (shortname.length > 9 || !/^[a-zA-Z0-9]+$/.test(shortname)) {
-        this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.invalid_shortname_retry'));
-        return;
-      }
-      finalShortname = shortname;
-    } else {
-      // Fallback: crop name to 10 chars
-      finalShortname = state.name.substring(0, 10);
-    }
 
-    // Store mappings
-    const userMap = require('../bridge/index').userMap; // Access the map
-    userMap.set(`whatsapp:${state.phone}`, {
-      tgId,
-      tgUsername: state.tgUsername || null,
-      name: state.name,
-      shortname: finalShortname
-    });
-    userMap.set(`telegram:${tgId}`, {
-      waId: state.phone,
-      name: state.name,
-      shortname: finalShortname
-    });
-
-    this.userStates.delete(tgId);
-    this.bot.sendMessage(tgId, LocalizationManager.getInstance().t('link.success', { shortname: finalShortname }));
-  }
 }
 
 const telegramClient = new TelegramClient();

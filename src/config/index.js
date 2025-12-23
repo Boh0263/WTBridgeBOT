@@ -16,7 +16,7 @@ const config = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
   },
-  language: process.env.LANGUAGE || 'en',
+  language: process.env.LANGUAGE || 'it',
 };
 
 function validateConfig() {

@@ -7,7 +7,7 @@ async function processMessage(msg, platform) {
   let mentions = [];
   let userInfo = null;
 
-  const { userMap } = require('../bridge/index');
+const storage = require('../storage');
 
    if (platform === 'whatsapp') {
      text = msg.body || '';
@@ -24,15 +24,11 @@ async function processMessage(msg, platform) {
       // Use pushname directly, fallback to phone number like unsaved contacts in WhatsApp
       const name = msg.pushname || waPhone;
     userInfo = { id: sender, name, platform: 'whatsapp' };
-    // Lookup shortname from userMap
-    const { waIdToTgId, userMap } = require('../bridge/index');
-    const tgId = waIdToTgId.get(sender);
-    if (tgId) {
-      const user = userMap.get(tgId);
-      if (user) {
-        userInfo.shortname = user.shortname;
-      }
-    }
+     // Lookup shortname from storage
+     const found = storage.findUserByWaId(sender);
+     if (found) {
+       userInfo.shortname = found.user.telegram?.shortname;
+     }
     // Extract mentions
     if (msg.mentionedIds) {
       mentions = msg.mentionedIds.map(id => ({ id, platform: 'whatsapp' }));
@@ -49,12 +45,11 @@ async function processMessage(msg, platform) {
     timestamp = msg.date;
     sender = msg.from.username || msg.from.first_name;
     userInfo = { id: msg.from.id, username: msg.from.username, name: msg.from.first_name + ' ' + (msg.from.last_name || ''), platform: 'telegram' };
-    // Lookup shortname from userMap
-    const { userMap } = require('../bridge/index');
-    const user = userMap.get(msg.from.id);
-    if (user) {
-      userInfo.shortname = user.shortname;
-    }
+     // Lookup shortname from storage
+     const user = storage.getUser(msg.from.id);
+     if (user) {
+       userInfo.shortname = user.telegram?.shortname;
+     }
     // Extract mentions from entities
     if (msg.entities) {
       msg.entities.forEach(entity => {

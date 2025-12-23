@@ -7,20 +7,10 @@ const { MessageMedia } = require('whatsapp-web.js');
 const logger = require('../utils/logger');
 const config = require('../config');
 const LocalizationManager = require('../utils/localization');
-const fs = require('fs');
-const path = require('path');
+const storage = require('../storage');
 
 const whatsappQueue = new MessageQueue();
 const telegramQueue = new MessageQueue();
-
-// Mapping of message IDs between platforms
-const messageIdMap = new Map(); // key: 'platform:id', value: { waId, tgId, timestamp }
-
-// Mapping of users: key tgId, value { phoneNumber, waId?, shortname, name, groupChatId? }
-const userMap = new Map();
-
-// Reverse mapping: waId -> tgId
-const waIdToTgId = new Map();
 
 // Pending WhatsApp link confirmations
 const waUserStates = new Map(); // key: waId, value: { shortname, tgData }
@@ -33,10 +23,10 @@ async function handleWAPrivate(msg) {
   console.log('WA private text:', text, 'from ID:', waId, 'phone:', waPhone);
 
   // Check for confirmation
-  if (text.toLowerCase() === 'yes') {
-    const state = waUserStates.get(waId);
-    if (state && (Date.now() - state.timestamp < 30000)) {
-      const { shortname, tgData, tgId, participantId } = state;
+   if (text.toLowerCase() === 'yes') {
+     const state = waUserStates.get(waId);
+     if (state && (Date.now() - state.timestamp < 30000)) {
+       const { shortname, tgId, participantId } = state;
 
       console.log('Confirming link for WA participant ID:', participantId, 'to TG ID:', tgId);
 
@@ -46,13 +36,15 @@ async function handleWAPrivate(msg) {
          logger.error('Failed to send confirmation received reply:', error);
        }
 
-      // Link WA to TG
-      const user = userMap.get(tgId);
-      user.waId = participantId;
-      user.groupChatId = state.groupChatId;
-
-      // Add reverse mapping
-      waIdToTgId.set(participantId, tgId);
+       // Link WA to TG
+       const user = storage.getUser(tgId);
+       if (user) {
+         user.whatsapp = user.whatsapp || {};
+         user.whatsapp.wa_id = participantId;
+         user.whatsapp.group_chat_id = state.groupChatId;
+         user.linking.status = 'linked';
+         storage.setUser(tgId, user);
+       }
 
       waUserStates.delete(waId);
 
@@ -86,10 +78,6 @@ async function handleWAPrivate(msg) {
   }
 }
 
-const MAPPING_FILE = path.join(__dirname, 'messageMappings.json');
-const USER_FILE = path.join(__dirname, 'userMappings.json');
-const WA_FILE = path.join(__dirname, 'waIdMappings.json');
-
 // Function to escape HTML entities
 function escapeHtml(text) {
   return text.replace(/[&<>"']/g, (char) => ({
@@ -101,70 +89,8 @@ function escapeHtml(text) {
   }[char]));
 }
 
-// Load mappings on start
-function loadMappings() {
-  try {
-    if (fs.existsSync(MAPPING_FILE)) {
-      const data = JSON.parse(fs.readFileSync(MAPPING_FILE, 'utf8'));
-      for (const [key, value] of Object.entries(data)) {
-        messageIdMap.set(key, value);
-      }
-    }
-    if (fs.existsSync(USER_FILE)) {
-      const data = JSON.parse(fs.readFileSync(USER_FILE, 'utf8'));
-      for (const [key, value] of Object.entries(data)) {
-        userMap.set(key, value);
-      }
-    }
-    if (fs.existsSync(WA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(WA_FILE, 'utf8'));
-      for (const [key, value] of Object.entries(data)) {
-        waIdToTgId.set(key, value);
-      }
-    }
-  } catch (error) {
-    logger.error('Error loading mappings:', error);
-  }
-}
-
-// Save mappings periodically
-function saveMappings() {
-  try {
-    const data = {};
-    for (const [key, value] of messageIdMap) {
-      data[key] = value;
-    }
-    fs.writeFileSync(MAPPING_FILE, JSON.stringify(data, null, 2));
-
-    const userData = {};
-    for (const [key, value] of userMap) {
-      userData[key] = value;
-    }
-    fs.writeFileSync(USER_FILE, JSON.stringify(userData, null, 2));
-
-    const waIdData = {};
-    for (const [key, value] of waIdToTgId) {
-      waIdData[key] = value;
-    }
-    fs.writeFileSync(WA_FILE, JSON.stringify(waIdData, null, 2));
-  } catch (error) {
-    logger.error('Error saving mappings:', error);
-  }
-}
-
-// Cleanup old mappings (older than 7 days)
-function cleanupMappings() {
-  const now = Date.now();
-  const cutoff = 7 * 24 * 60 * 60 * 1000; // 7 days
-  for (const [key, value] of messageIdMap) {
-    if (now - value.timestamp > cutoff) {
-      messageIdMap.delete(key);
-    }
-  }
-}
-
 async function initializeBridge() {
-  loadMappings();
+  storage.loadData();
 
   await whatsappClient.initialize();
   await telegramClient.initialize();
@@ -205,12 +131,6 @@ async function initializeBridge() {
   // Start processing queues
   setInterval(() => processQueue(whatsappQueue, 'telegram'), 1000); // Process every second
   setInterval(() => processQueue(telegramQueue, 'whatsapp'), 1000);
-
-  // Save mappings every minute
-  setInterval(saveMappings, 60 * 1000);
-
-  // Cleanup old mappings every hour
-  setInterval(cleanupMappings, 60 * 60 * 1000);
 }
 
 async function processQueue(queue, targetPlatform) {
@@ -221,16 +141,26 @@ async function processQueue(queue, targetPlatform) {
       if (processed) {
         // Store user info
         if (processed.userInfo) {
-          const userKey = `${processed.userInfo.platform}:${processed.userInfo.id}`;
-          userMap.set(userKey, processed.userInfo);
+          const userKey = processed.userInfo.platform === 'telegram' ? processed.userInfo.id : null;
+          if (userKey) {
+            let user = storage.getUser(userKey) || {
+              telegram_id: userKey.toString(),
+              linking: { status: 'unlinked' },
+              metadata: { created_at: Date.now() }
+            };
+            user.telegram = user.telegram || {};
+            user.telegram.name = processed.userInfo.name;
+            user.telegram.shortname = processed.userInfo.shortname;
+            storage.setUser(userKey, user);
+          }
         }
 
         let replyId = null;
         if (processed.replyTo) {
           const key = `${item.platform}:${processed.replyTo}`;
-          const mapping = messageIdMap.get(key);
+          const mapping = storage.getMessageMapping(key);
           if (mapping) {
-            replyId = targetPlatform === 'telegram' ? mapping.tgId : mapping.waId;
+            replyId = targetPlatform === 'telegram' ? (mapping.telegram || null) : (mapping.whatsapp || null);
           }
         }
 
@@ -244,15 +174,13 @@ async function processQueue(queue, targetPlatform) {
 
         // Store mapping
         const originalKey = `${item.platform}:${processed.originalId}`;
-        if (!messageIdMap.has(originalKey)) {
-          messageIdMap.set(originalKey, { timestamp: Date.now() });
-        }
-        const mapping = messageIdMap.get(originalKey);
+        let mapping = storage.getMessageMapping(originalKey) || { timestamp: Date.now() };
         if (targetPlatform === 'telegram') {
-          mapping.tgId = forwardedId.id;
+          mapping.telegram = forwardedId.id;
         } else {
-          mapping.waId = forwardedId.id;
+          mapping.whatsapp = forwardedId.id;
         }
+        storage.setMessageMapping(originalKey, mapping);
       }
       } catch (error) {
         logger.error(`Error processing message from ${item.platform}:`, error);
@@ -261,12 +189,22 @@ async function processQueue(queue, targetPlatform) {
 }
 
 async function forwardToTelegram(msg, replyId) {
-  const { text, media, originalMsg, userInfo, from: platform } = msg;
+   const { text, media, originalMsg, userInfo, from: platform } = msg;
 
-  // Lookup sender info from userMap
-  const senderKey = `${userInfo.platform}:${userInfo.id}`;
-  const mappedUser = userMap.get(senderKey);
-  const senderName = mappedUser?.shortname || userInfo.name || 'Unknown';
+   // Lookup sender info
+   let senderName;
+   if (platform === 'whatsapp') {
+     const found = storage.findUserByWaId(userInfo.id);
+     if (found) {
+       senderName = found.user.telegram?.shortname || found.user.telegram?.name || userInfo.name || 'Unknown';
+     } else {
+       senderName = userInfo.name || 'Unknown';
+     }
+   } else {
+     // telegram
+     const mappedUser = storage.getUser(userInfo.id);
+     senderName = (mappedUser?.telegram?.shortname || mappedUser?.telegram?.name) || userInfo.name || 'Unknown';
+   }
 
   // Build formatted text
   const content = escapeHtml(text || '');
@@ -318,12 +256,22 @@ async function forwardToTelegram(msg, replyId) {
 }
 
 async function forwardToWhatsApp(msg, replyId, mentionedIds = []) {
-  const { text, media, originalMsg, userInfo, from: platform } = msg;
+   const { text, media, originalMsg, userInfo, from: platform } = msg;
 
-  // Lookup sender info from userMap
-  const senderKey = `${userInfo.platform}:${userInfo.id}`;
-  const mappedUser = userMap.get(senderKey);
-  const senderName = mappedUser?.shortname || userInfo.name || 'Unknown';
+   // Lookup sender info
+   let senderName;
+   if (platform === 'whatsapp') {
+     const found = storage.findUserByWaId(userInfo.id);
+     if (found) {
+       senderName = found.user.telegram?.shortname || found.user.telegram?.name || userInfo.name || 'Unknown';
+     } else {
+       senderName = userInfo.name || 'Unknown';
+     }
+   } else {
+     // telegram
+     const mappedUser = storage.getUser(userInfo.id);
+     senderName = (mappedUser?.telegram?.shortname || mappedUser?.telegram?.name) || userInfo.name || 'Unknown';
+   }
 
   // Build formatted text
   const content = text || '';
@@ -371,41 +319,43 @@ function replaceMentions(text, mentions, targetPlatform) {
   let newText = text;
   let mentionedIds = [];
   mentions.forEach(mention => {
-    const key = `${mention.platform}:${mention.id || mention.username}`;
-    const mentionedUser = userMap.get(key);
+    let mentionedUser = null;
+    if (mention.platform === 'telegram') {
+      mentionedUser = storage.findUserByUsername(mention.username);
+    } else {
+      mentionedUser = storage.findUserByWaId(mention.id);
+    }
     if (mentionedUser) {
-      let counterpartUser = null;
-      const currentMention = mention.platform === 'whatsapp' ? `@${mention.id}` : `@${mention.username}`;
-      if (mention.platform === 'whatsapp') {
-        // Find Telegram counterpart
-        const tgId = waIdToTgId.get(mention.id);
-        if (tgId) {
-          const counterpartKey = `telegram:${tgId}`;
-          counterpartUser = userMap.get(counterpartKey);
+      const isLinked = (targetPlatform === 'telegram' && mentionedUser.telegram) ||
+                       (targetPlatform === 'whatsapp' && mentionedUser.whatsapp);
+      if (targetPlatform === 'telegram') {
+        if (mention.platform === 'telegram') {
+          if (isLinked) {
+            // Same platform linked: replace @username with @counterpart_username
+            const currentMention = `@${mention.username}`;
+            const replacement = mentionedUser.telegram.username ? `@${mentionedUser.telegram.username}` : `@${mentionedUser.telegram.name}`;
+            newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+          }
+          // Unlinked: leave @username as-is (harmless invalid mention)
         }
-      } else { // telegram
-        // Find WhatsApp counterpart
-        const waId = mentionedUser.waId;
-        if (waId) {
-          const counterpartKey = `whatsapp:${waId}`;
-          counterpartUser = userMap.get(counterpartKey);
+        // Cross-platform from WhatsApp: no text replacement (leave @name)
+      } else if (targetPlatform === 'whatsapp') {
+        if (mention.platform === 'telegram') {
+          if (isLinked) {
+            // Cross-platform: replace @username with @name and add to mentionedIds
+            const currentMention = `@${mention.username}`;
+            const replacement = `@${mentionedUser.telegram?.name || 'Unknown'}`;
+            newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
+            mentionedIds.push(mentionedUser.whatsapp.wa_id);
+          }
+          // Unlinked: leave @username, no mentionedIds
+        } else if (mention.platform === 'whatsapp') {
+          if (isLinked) {
+            // Same platform: add to mentionedIds, no text replacement
+            mentionedIds.push(mentionedUser.whatsapp.wa_id);
+          }
+          // Unlinked: no change
         }
-      }
-      if (counterpartUser) {
-        // Mapped: replace with counterpart's tag
-        if (targetPlatform === 'telegram') {
-          const replacement = counterpartUser.username ? `@${counterpartUser.username}` : `@${counterpartUser.name}`;
-          newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
-        } else { // whatsapp
-          const replacement = `@${counterpartUser.name}`;
-          newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
-          // Add to mentionedIds
-          mentionedIds.push(counterpartUser.waId);
-        }
-      } else {
-        // Unmapped: replace with plain @name
-        const replacement = `@${mentionedUser.name}`;
-        newText = newText.replace(new RegExp(currentMention, 'g'), replacement);
       }
     }
   });
@@ -439,14 +389,12 @@ async function handleIAMCommand(msg) {
   console.log('IAM command from WA participant ID:', waId, 'shortname:', shortname);
 
   // Find matching TG user by shortname
+  const found = storage.findUserByShortname(shortname);
   let tgId = null;
   let tgData = null;
-  for (const [key, value] of userMap) {
-    if (value.shortname === shortname) {
-      tgId = key;
-      tgData = value;
-      break;
-    }
+  if (found) {
+    tgId = found.id;
+    tgData = found.user;
   }
 
   if (!tgId) {
@@ -459,13 +407,13 @@ async function handleIAMCommand(msg) {
   }
 
   // Set state for confirmation
-  waUserStates.set(tgData.phoneNumber + '@c.us', { shortname, tgData, tgId, groupChatId: msg.from, participantId: waId, timestamp: Date.now() });
+  waUserStates.set(tgData.whatsapp.phone_number + '@c.us', { shortname, tgData, tgId, groupChatId: msg.from, participantId: waId, timestamp: Date.now() });
 
-   try {
-     await whatsappClient.sendMessage(tgData.phoneNumber + '@c.us', LocalizationManager.getInstance().t('iam.confirm', { name: tgData.name }));
-   } catch (error) {
-     logger.error('Failed to send confirmation message:', error);
-   }
+    try {
+      await whatsappClient.sendMessage(tgData.whatsapp.phone_number + '@c.us', LocalizationManager.getInstance().t('iam.confirm', { name: tgData.telegram?.name || 'Unknown' }));
+    } catch (error) {
+      logger.error('Failed to send confirmation message:', error);
+    }
 }
 
-module.exports = { initializeBridge, userMap, waIdToTgId, saveMappings };
+module.exports = { initializeBridge };
