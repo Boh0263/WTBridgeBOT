@@ -1,5 +1,7 @@
 # How to Link Your WhatsApp and Telegram Accounts
 
+**Note: Cross-platform mentions are currently a work in progress and may not work correctly. The linking process is functional, but mention notifications across platforms have known issues.**
+
 This guide explains how to link your WhatsApp and Telegram accounts so that mentions (@tags) work across both platforms. Once linked, tagging someone in one platform will notify them in the other!
 
 ## Prerequisites
@@ -35,10 +37,12 @@ Your shortname is now linked to your Telegram account.
 
 ## Step 3: Test the Linking
 
+**Note: Due to current limitations, cross-platform mentions may not work as expected.**
+
 - Send a message in WhatsApp tagging someone: `@their-shortname`
-- It should appear in Telegram with a proper @mention.
+- It should appear in Telegram (mention functionality may be limited).
 - Send a message in Telegram tagging someone: `@their-username`
-- It should appear in WhatsApp with their name.
+- It should appear in WhatsApp (mention functionality may be limited).
 
 ## Troubleshooting
 
@@ -53,7 +57,8 @@ Your shortname is now linked to your Telegram account.
 - Someone else used that number. Use `/unlink` first if needed.
 
 ### Mentions not working
-- Ensure both users are linked.
+- Cross-platform mentions are currently experimental and may have bugs.
+- Ensure both users are linked (linking works, but mentions may not).
 - Check bot logs for errors.
 - Restart the bot if mappings aren't loading.
 
