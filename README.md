@@ -1,5 +1,7 @@
 # BridgeBOT
 
+⚠️ **IMPORTANT: Read the [Disclaimer](docs/DISCLAIMER.md) before using BridgeBOT. You use this software at your own risk.**
+
 A Node.js application that bridges messages between WhatsApp and Telegram groups, sharing media and maintaining functionality.
 
 ## Features
@@ -19,7 +21,9 @@ See `docs/SETUP.md` for detailed setup instructions, including how to create you
 ## User Guides
 - `docs/guides/linking/`: Localized guides on linking accounts for cross-platform mentions (available in English, Italian, Spanish, French).
 
-### Setup
+### Quick Setup
+⚠️ **Review the [Disclaimer](docs/DISCLAIMER.md) before starting.**
+
 1. Clone repo
 2. `npm install`
 3. Copy `.env.example` to `.env` and fill in values

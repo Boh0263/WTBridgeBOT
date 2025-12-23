@@ -1,5 +1,7 @@
 # Easy Setup Guide for BridgeBOT
 
+⚠️ **IMPORTANT: Before proceeding, read the [Disclaimer](../DISCLAIMER.md). You use BridgeBOT at your own risk.**
+
 Follow these simple steps to get your WhatsApp-Telegram bridge running. No coding experience needed!
 
 ## Step 1: Get Your Computer Ready
