@@ -208,8 +208,7 @@ async function forwardToTelegram(msg, replyId) {
 
   // Build formatted text
   const content = escapeHtml(text || '');
-  const timestamp = escapeHtml(new Date().toLocaleString());
-  const embedText = `<b>${escapeHtml(senderName)}:</b>\n${content}\n<i>${timestamp}</i>`;
+  const embedText = `<b>${escapeHtml(senderName)}:</b>\n${content}`;
 
   const options = replyId ? { reply_to_message_id: replyId, parse_mode: 'HTML' } : { parse_mode: 'HTML' };
 
@@ -275,7 +274,7 @@ async function forwardToWhatsApp(msg, replyId, mentionedIds = []) {
 
   // Build formatted text
   const content = text || '';
-  const formattedText = `*${senderName}:*\n${content}\n_${new Date().toLocaleString()}_`;
+  const formattedText = `*${senderName}:*\n${content}`;
 
   const options = replyId ? { quotedMessageId: replyId } : {};
   if (mentionedIds.length > 0) {
